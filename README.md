@@ -44,5 +44,3 @@ Any User :	I want to see all related Memory Packages in a chain or sequence,	so 
 A Parent :	I want to digitally archive all Memory Packages related to 'Summer Vacation 2025' into a single folder,	so that I can keep my main timeline clean and quickly find all the memories from that specific trip later.
 An Individual	: I want to use keywords and dates to search through my archived Memory Packages,	so that I can reliably find a specific memory or thought without having to manually scroll through everything.
 Any User :	I want the application to securely store and back up all my Memory Packages,	so that my precious memories are safe from physical damage, lost phones, or computer crashes.
-
-# Tech Stack
