@@ -42,14 +42,19 @@ class UserService:
         request_in = payload.model_dump()
         try:
             response = supabase.table("users").select("user_id", "password_hash").eq("email", request_in["email"]).execute()
-            hashed_password = response.data[0]["password_hash"]
+            user_data = response.data[0]
+            hashed_password = user_data["password_hash"]
+            user_id = user_data["user_id"] 
         except Exception as e:
             print(f"Supabase Error: {e}")
             raise e
 
-        print(hashed_password)
         if security_service.verify_password(payload.password, hashed_password):
-            token = security_service.create_access_token(request_in, expires_delta=timedelta(minutes=15))
+            token_payload = {
+                "sub": str(user_id), 
+                "email": request_in["email"]
+            }
+            token = security_service.create_access_token(token_payload, expires_delta=timedelta(minutes=30))
             return token
         else:
             raise HTTPException(status_code=404, detail="Email or password do not match!")

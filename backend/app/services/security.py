@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Annotated
+from typing import Annotated, Any
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -19,6 +19,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES")
 
 password_hash = PasswordHash.recommended()
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/get_access_token")
+
+
 class Token(BaseModel):
     access_token : str
     token_type : str
@@ -33,32 +36,34 @@ class SecurityService:
     def verify_password(self, plain_password, hashed_password):
         return password_hash.verify(plain_password, hashed_password)
 
+    # services/security.py
+
     def create_access_token(self, data: dict, expires_delta: timedelta | None = None):
         to_encode = data.copy()
+
         if expires_delta:
             expire = datetime.now(timezone.utc) + expires_delta
         else:
             expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        
         to_encode.update({"exp": expire})
+        
         encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-        return encoded_jwt
+        return {"access_token": encoded_jwt, "token_type": "bearer"}
     
-    def authorize_user(self, token: str) -> int:
-        try:
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            user_id = payload.get("sub")
-            if user_id is None:
-                raise HTTPException(
+    def get_current_user(self, token: Annotated[str, Depends(oauth2_scheme)]) -> str:
+        creditenitals_exception = HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Could not validate credentials",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
-            return int(user_id)
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id = payload.get("sub")
+            if user_id is None:
+                raise creditenitals_exception
+            return user_id
         except InvalidTokenError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Could not validate credentials",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+            raise creditenitals_exception
         
 security_service = SecurityService()
