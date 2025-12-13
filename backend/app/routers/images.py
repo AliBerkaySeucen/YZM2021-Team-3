@@ -9,6 +9,7 @@ router = APIRouter(prefix="/images", tags=["Images"])
 @router.post("/")
 async def get_upload_url(file_name: str, 
                         verified_id: int = Depends(security_service.authorize_user)):
+    """Returns signed url for temporary access to the storage bucket."""
     payload = ImageUpload(user_id=verified_id, file_name=file_name)
     signed_url = image_service.get_upload_url(payload)
     return signed_url
