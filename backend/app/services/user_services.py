@@ -1,20 +1,13 @@
 from __future__ import annotations
 
-import base64
-import os
-import secrets
-import hashlib
 from typing import Any
+from fastapi import HTTPException
+from datetime import timedelta
 
 from models.user import UserCreate, UserLogin, UserPublic
 from db.db import supabase
+from services.security import security_service
 
-
-def _hash_password(password: str, salt: str | None = None) -> str:
-    """PBKDF2-HMAC-SHA256 with a salt; returns base64 string."""
-    salt_bytes = (salt or os.getenv("PASSWORD_SALT") or "static-salt").encode()
-    digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt_bytes, 100_000)
-    return base64.b64encode(digest).decode()
 
 def _mutate_dict(mapping: dict, old_key: str | Any, new_key: str | Any, new_value : Any):
     mutated_dict = {}
@@ -26,11 +19,11 @@ def _mutate_dict(mapping: dict, old_key: str | Any, new_key: str | Any, new_valu
     return mutated_dict
 
 class UserService:
-    def __init__(self, salt: str | None = None):
-        self._salt = salt
+    def __init__(self):
+        pass
 
     def create_user(self, payload: UserCreate) -> UserPublic:
-        hashed = _hash_password(payload.password, self._salt)
+        hashed = security_service.create_password_hash(payload.password)
         raw_input = payload.model_dump()
         modified_user = _mutate_dict(raw_input, old_key="password", new_key="password_hash", new_value=hashed)
         try:
@@ -44,6 +37,23 @@ class UserService:
         if response.data:
             return response.data[0] 
         return None
+    
+    def login_user(self, payload: UserLogin):
+        request_in = payload.model_dump()
+        try:
+            response = supabase.table("users").select("user_id", "password_hash").eq("email", request_in["email"]).execute()
+            hashed_password = response.data[0]["password_hash"]
+        except Exception as e:
+            print(f"Supabase Error: {e}")
+            raise e
+
+        print(hashed_password)
+        if security_service.verify_password(payload.password, hashed_password):
+            token = security_service.create_access_token(request_in, expires_delta=timedelta(minutes=15))
+            return token
+        else:
+            raise HTTPException(status_code=404, detail="Email or password do not match!")
+        
         
 
 

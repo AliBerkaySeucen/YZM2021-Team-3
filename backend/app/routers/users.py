@@ -5,10 +5,13 @@ from services.user_services import user_service
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@router.post("/")
+@router.post("/create_user")
 async def create_user(payload: UserCreate) -> UserPublic:
+    """Creates new user in the database"""
     return user_service.create_user(payload)
 
-@router.get("/")
-async def does_work():
-    user_service.does_work()
+@router.post("/get_access_token")
+async def login_user(payload: UserLogin) -> str:
+    """Return's access token for the user in str format"""
+    token = user_service.login_user(payload=payload)
+    return token

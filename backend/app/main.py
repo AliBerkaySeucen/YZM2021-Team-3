@@ -4,3 +4,4 @@ from routers import users, nodes, images, links
 app = FastAPI()
 
 app.include_router(users.router)
+app.include_router(images.router)

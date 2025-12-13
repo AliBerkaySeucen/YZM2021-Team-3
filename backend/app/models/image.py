@@ -1,9 +1,9 @@
 from pydantic import BaseModel
 import datetime
 
-class ImageCreate(BaseModel):
+class ImageUpload(BaseModel):
     user_id : int
-    image_file : str
+    file_name : str
 
 class ImageDelete(BaseModel):
     user_id : int
