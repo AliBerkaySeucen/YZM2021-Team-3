@@ -2,6 +2,14 @@ from models.image import ImageDelete, ImagePublic, ImageUpload
 from db.db import supabase
 from services.security import security_service
 from fastapi import Depends, HTTPException
+from typing import Any
+
+def _payload_to_image_dump(payload : ImageUpload) -> dict[str, Any]:
+    """keys: (user_id, file_name, file_path)"""
+    file_path = f"{payload.user_id}/{payload.file_name}"
+    image_dump = payload.model_dump()
+    image_dump["file_path"] = file_path
+    return image_dump
 
 class ImageService:
 
@@ -9,32 +17,20 @@ class ImageService:
         pass
 
     def get_upload_url(self, payload: ImageUpload):
-        file_path = f"{payload.user_id}/{payload.file_name}"
+        """Returns a signed URL for the given file name."""
+        image_dump = _payload_to_image_dump(payload=payload)
+        response = supabase.storage.from_("images_0").create_signed_upload_url(path=image_dump["file_path"])
         
-        response = supabase.storage.from_("images_0").create_signed_upload_url(path=file_path)
-        
-        # DEBUG: Print what Supabase gave us. 
-        # Sometimes keys are 'signedUrl' (camelCase) and sometimes 'signed_url' (snake_case)
-        print(f"Storage Response: {response}") 
-
         if not response:
-             raise HTTPException(status_code=500, detail="Failed to generate URL from Supabase")
-
-        # 2. Prepare Database Data
-        image_dump = payload.model_dump()
-        image_dump["file_path"] = file_path 
+             raise HTTPException(status_code=500, detail="Failed to generate URL from Supabase")       
 
         # Return the signed URL so the frontend can use it
-        # Check your print logs to see if this key is 'signedUrl' or 'signed_url'
         return response["signedUrl"]
     
     def confirm_uploaded(self, payload : ImageUpload):
-        file_path = f"{payload.user_id}/{payload.file_name}"
-        image_dump = payload.model_dump()
-        image_dump["file_path"] = file_path 
+        """If upload to signed URL successful, then call this method so that DB can be updated."""
+        image_dump = _payload_to_image_dump(payload=payload)
         try:
-            # Print what we are trying to send to the DB
-            print(f"Inserting into DB: {image_dump}")
             db_response = supabase.table("images").insert(image_dump).execute()
         except Exception as e:
             print(f" DATABASE ERROR: {e}")
@@ -42,8 +38,13 @@ class ImageService:
         
         return db_response.data[0]
     
-    def get_image():
-        return None
+    def get_signed_url(self, payload : ImageUpload):
+        """Returns a signed URL of given file name for the user."""
+        image_dump = _payload_to_image_dump(payload=payload)
+        response = supabase.storage.from_("images_0").create_signed_url(
+            path=image_dump["file_path"], expires_in=60*30 # can be loaded from dotenv
+        )
+        return response
     
     def delete_image():
         return None
