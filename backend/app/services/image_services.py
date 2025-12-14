@@ -23,19 +23,24 @@ class ImageService:
         # 2. Prepare Database Data
         image_dump = payload.model_dump()
         image_dump["file_path"] = file_path 
-        
-        try:
-            # Print what we are trying to send to the DB
-            print(f"Inserting into DB: {image_dump}")
-            
-            db_response = supabase.table("images").insert(image_dump).execute()
-        except Exception as e:
-            print(f" DATABASE ERROR: {e}")
-            raise HTTPException(status_code=500, detail=f"Database Insert Failed: {str(e)}")
 
         # Return the signed URL so the frontend can use it
         # Check your print logs to see if this key is 'signedUrl' or 'signed_url'
         return response["signedUrl"]
+    
+    def confirm_uploaded(self, payload : ImageUpload):
+        file_path = f"{payload.user_id}/{payload.file_name}"
+        image_dump = payload.model_dump()
+        image_dump["file_path"] = file_path 
+        try:
+            # Print what we are trying to send to the DB
+            print(f"Inserting into DB: {image_dump}")
+            db_response = supabase.table("images").insert(image_dump).execute()
+        except Exception as e:
+            print(f" DATABASE ERROR: {e}")
+            raise HTTPException(status_code=500, detail=f"Database Insert Failed: {str(e)}")
+        
+        return db_response.data[0]
     
     def get_image():
         return None

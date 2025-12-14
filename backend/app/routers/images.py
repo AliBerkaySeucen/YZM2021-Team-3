@@ -13,3 +13,11 @@ async def get_upload_url(file_name: str,
     payload = ImageUpload(user_id=verified_id, file_name=file_name)
     signed_url = image_service.get_upload_url(payload)
     return signed_url
+
+@router.post("/confirm_upload")
+async def confirm_upload(file_name : str, 
+                        verified_id : int = Depends(security_service.get_current_user)):
+    """Method when needs to be called if image uploaded to the url"""
+    payload = ImageUpload(user_id=verified_id, file_name=file_name)
+    db_response = image_service.confirm_uploaded(payload)
+    return db_response
