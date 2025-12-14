@@ -22,7 +22,7 @@ class ImageService:
 
         # 2. Prepare Database Data
         image_dump = payload.model_dump()
-        image_dump["image_path"] = file_path 
+        image_dump["file_path"] = file_path 
         
         try:
             # Print what we are trying to send to the DB
