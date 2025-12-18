@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends
 from typing import Annotated, Any
 from services.image_services import image_service
 from services.security import security_service
-from models.image import ImageDelete, ImagePublic, ImageUpload
+from models.image import ImagePublic, ImageFilename
 
 router = APIRouter(prefix="/images", tags=["Images"])
 
-def _filename_to_payload(file_name: str, verified_id: int) -> ImageUpload:
-    return ImageUpload(user_id=verified_id, file_name=file_name)
+def _filename_to_payload(file_name: str, verified_id: int) -> ImageFilename:
+    return ImageFilename(user_id=verified_id, file_name=file_name)
 
 @router.post("/get_upload_url")
 async def get_upload_url(file_name: str, 
@@ -28,6 +28,23 @@ async def confirm_upload(file_name : str,
 @router.post("/get_url_by_name")
 async def get_url_by_name(file_name : str, 
                         verified_id : int = Depends(security_service.get_current_user)):
+    """Gets signed url from the storage for the file name"""
     payload = _filename_to_payload(file_name=file_name, verified_id=verified_id)
     response = image_service.get_signed_url(payload=payload)
     return response
+
+@router.delete("/delete_image_file")
+async def delete_image(file_name : str, 
+                        verified_id : int = Depends(security_service.get_current_user)):
+    """Deletes file from the storage and database according to filename"""
+    payload = _filename_to_payload(file_name=file_name, verified_id=verified_id)
+    response = image_service.delete_image(payload=payload)
+    return response
+
+@router.post("/get_image_info")
+async def get_image_info(file_name : str, 
+                        verified_id : int = Depends(security_service.get_current_user)):
+    """Gets image info of user_id, image_id, file_path, created_at"""
+    payload = _filename_to_payload(file_name=file_name, verified_id=verified_id)
+    image_public = image_service.get_image_info(payload=payload).model_dump()
+    return image_public
