@@ -1,10 +1,11 @@
 import os
+from typing import Optional
 from supabase import create_client, Client
 from dotenv import load_dotenv
+
 load_dotenv()
 
-url: str = os.environ.get("SUPABASE_URL")
-key: str = os.environ.get("SUPABASE_KEY")
+url: Optional[str] = os.environ.get("SUPABASE_URL")
+key: Optional[str] = os.environ.get("SUPABASE_KEY")
 
-supabase: Client = create_client(url, key)
-
+supabase: Optional[Client] = create_client(url, key) if url and key else None
