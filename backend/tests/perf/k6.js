@@ -2,12 +2,16 @@ import http from "k6/http";
 import { check } from "k6";
 
 const baseUrl = __ENV.K6_BASE_URL || "http://localhost:8000";
-const token = __ENV.K6_TOKEN;
+const rawToken = __ENV.K6_TOKEN;
 const nodeId = __ENV.K6_NODE_ID;
 
-if (!token) {
+if (!rawToken) {
   throw new Error("K6_TOKEN must be set to a valid bearer token.");
 }
+
+const token = rawToken.startsWith("{")
+  ? JSON.parse(rawToken).access_token
+  : rawToken;
 
 if (!nodeId) {
   throw new Error("K6_NODE_ID must be set to a valid node_id.");
