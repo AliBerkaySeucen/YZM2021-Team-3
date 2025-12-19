@@ -1,5 +1,13 @@
 from pydantic import BaseModel
 import datetime
+from enum import Enum
+
+class UserDataFields(Enum):
+    first_name: str = "first_name"
+    surname: str = "surname"
+    email: str = "email"
+    password: str = "password_hash"
+    user_id : str = "user_id"
 
 
 class UserCreate(BaseModel):

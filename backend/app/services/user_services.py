@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal, Union
 from fastapi import HTTPException
 from datetime import timedelta
 
-from models.user import UserCreate, UserLogin, UserPublic
+from models.user import UserCreate, UserLogin, UserPublic, UserDataFields as df
 from db.db import supabase
 from services.security import security_service
+
+ResetOptions = Literal["password", "email", "first_name", "surname"]
 
 
 def _mutate_dict(mapping: dict, old_key: str | Any, new_key: str | Any, new_value : Any):
@@ -22,7 +24,7 @@ class UserService:
     def __init__(self):
         pass
 
-    def create_user(self, payload: UserCreate) -> UserPublic:
+    def create_user(self, payload: UserCreate):
         hashed = security_service.create_password_hash(payload.password)
         raw_input = payload.model_dump()
         modified_user = _mutate_dict(raw_input, old_key="password", new_key="password_hash", new_value=hashed)
@@ -58,6 +60,26 @@ class UserService:
             return token
         else:
             raise HTTPException(status_code=404, detail="Email or password do not match!")
+        
+    def reset_user_info(self, user_id : int, new_val : str, reset_mode : ResetOptions):
+        """Resets first_name, surname, email or password (only 1 of them) with the given new_val"""
+        mode = ""
+        if reset_mode == "password":
+            mode = "password_hash"
+            new_val = security_service.create_password_hash(password=new_val)
+        else:
+            mode = reset_mode
+        
+        db_response = supabase.table("users")\
+            .update({mode : new_val}).eq("user_id", value=user_id).execute()
+        
+        return db_response
+    
+    def get_user_info(self, user_id : int):
+        user_public_cols = UserPublic.model_fields.keys()
+        db_response = supabase.table("users").select(user_public_cols)\
+            .eq("user_id", user_id).execute()
+        return db_response
         
         
 
