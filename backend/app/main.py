@@ -5,3 +5,4 @@ app = FastAPI()
 
 app.include_router(users.router)
 app.include_router(images.router)
+app.include_router(nodes.router)

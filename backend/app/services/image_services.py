@@ -69,7 +69,7 @@ class ImageService:
 
         return {"storage_data": storage_response, "db_data": db_response.data}
     
-    def get_image_info(self, payload) -> ImagePublic:
+    def get_image_info(self, payload):
         image_dump = _payload_to_image_dump(payload=payload)
         file_path = image_dump["file_path"]
         user_id = image_dump["user_id"]
@@ -85,7 +85,7 @@ class ImageService:
         created_at = db_response["data"]["created_at"]
 
         image_public = ImagePublic(user_id=user_id, image_id=image_id, 
-                                file_path=file_path, created_at=created_at)
+                                file_path=file_path, created_at=created_at).model_dump()
 
         return image_public
 
