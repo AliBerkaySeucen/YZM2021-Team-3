@@ -3,26 +3,26 @@
 # ==========================================
 
 # FastAPI Framework
-fastapi==0.109.0
-uvicorn[standard]==0.27.0
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
 
 # Database - Supabase
-supabase==2.3.4
-psycopg2-binary==2.9.9
+supabase==2.25.1
+psycopg2-binary==2.9.10
 
 # Authentication & Security
-pyjwt==2.8.0
-python-multipart==0.0.6
-python-dotenv==1.0.0
-pwdlib[argon2]==0.2.0
+pyjwt==2.10.1
+python-multipart==0.0.20
+python-dotenv==1.0.1
+pwdlib[argon2]==0.2.1
 
-# HTTP Client (version constrained by supabase)
-httpx==0.25.2
+# HTTP Client
+httpx==0.28.1
 
-# Validation (FastAPI includes pydantic)
-pydantic==2.5.3
-pydantic-settings==2.1.0
-email-validator==2.1.0.post1
+# Validation
+pydantic==2.12.5
+pydantic-settings==2.12.0
+email-validator==2.2.0
 
 # ==========================================
 # Development & Testing Dependencies

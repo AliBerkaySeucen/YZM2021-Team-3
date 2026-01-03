@@ -7,10 +7,10 @@ from models.memory import MemoOp
 router = APIRouter(prefix="/memories", tags=["Memories"])
 
 @router.post("/create_memory")
-async def create_memory(memo_id : int, memo_name : Optional[str] = None, description : Optional[str] = None,
+async def create_memory(memo_name : Optional[str] = None, description : Optional[str] = None,
                     verified_id : int = Depends(security_service.get_current_user)):
     """Creates memory given user_id, memo_id, memo_name and description"""
-    payload = MemoOp(user_id=verified_id, memo_id=memo_id, memo_name=memo_name, description=description)
+    payload = MemoOp(user_id=verified_id, memo_name=memo_name, description=description)
     response = memory_service.create_memory(payload=payload)
     return response
 

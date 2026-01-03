@@ -12,7 +12,7 @@ class MemoDataFields(Enum):
 
 class MemoOp(BaseModel):
     user_id : int
-    memo_id : int
+    memo_id : Optional[int]
     memo_name : Optional[str]
     description : Optional[str]
 
