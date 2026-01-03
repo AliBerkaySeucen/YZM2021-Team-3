@@ -230,11 +230,6 @@ def test_delete_link_success(monkeypatch):
     supabase_stub = SupabaseStub(table_chain=TableChain(response=response))
 
     monkeypatch.setattr(link_services, "supabase", supabase_stub)
-    monkeypatch.setattr(
-        payload,
-        "model_dump",
-        lambda: {link_df.user_id: 1, link_df.link_id: 3},
-    )
 
     service = LinkService()
     assert service.delete_link(payload) == response
@@ -245,11 +240,6 @@ def test_delete_link_supabase_error(monkeypatch):
     supabase_stub = SupabaseStub(table_chain=TableChain(exc=RuntimeError("delete fail")))
 
     monkeypatch.setattr(link_services, "supabase", supabase_stub)
-    monkeypatch.setattr(
-        payload,
-        "model_dump",
-        lambda: {link_df.user_id: 1, link_df.link_id: 3},
-    )
 
     service = LinkService()
     with pytest.raises(RuntimeError, match="delete fail"):

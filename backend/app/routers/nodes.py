@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from typing import Annotated, Any
+from typing import Annotated, Any, Optional
 from services.node_services import node_service
 from services.security import security_service
 from models.node import NodeUpdate, NodeInfoDelete, NodeCreate, NodeDataFields
@@ -7,7 +7,7 @@ from models.node import NodeUpdate, NodeInfoDelete, NodeCreate, NodeDataFields
 router = APIRouter(prefix="/nodes", tags=["Nodes"])
 
 @router.post("/create_node")
-async def create_node(image_id : str, description : str,
+async def create_node(description : str, image_id : Optional[str] = None, 
                     verified_id : int = Depends(security_service.get_current_user)):
     """Creates node given user_id, node_id and description"""
     payload = NodeCreate(user_id=verified_id, image_id=image_id, description=description)

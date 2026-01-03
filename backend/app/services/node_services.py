@@ -7,7 +7,7 @@ class NodeService:
     def __init__(self):
         pass
 
-    def _wrap_node_op(payload : NodeOp):
+    def _wrap_node_op(self, payload : NodeOp):
         """Wraps user_id and image_id fields of NodeOp for other special purpose models."""
         return payload.model_dump()
 
@@ -20,10 +20,10 @@ class NodeService:
     def update_node(self, payload : NodeUpdate):
         node_dump = self._wrap_node_op(payload)
         db_response = supabase.table("nodes")\
-            .update({df.image_id : node_dump[df.image_id], 
-                    df.description : node_dump[df.description]})\
-            .eq(df.user_id, node_dump[df.user_id]) \
-            .eq(df.node_id, node_dump[df.node_id]) \
+            .update({df.image_id.value : node_dump[df.image_id.value], 
+                    df.description.value : node_dump[df.description.value]})\
+            .eq(df.user_id.value, node_dump[df.user_id.value]) \
+            .eq(df.node_id.value, node_dump[df.node_id.value]) \
             .execute()
         
         return db_response
@@ -32,16 +32,16 @@ class NodeService:
         node_dump = self._wrap_node_op(payload)
         db_response = supabase.table("nodes") \
             .delete() \
-            .eq(df.user_id, node_dump[df.user_id]) \
-            .eq(df.node_id, node_dump[df.node_id]) \
+            .eq(df.user_id.value, node_dump[df.user_id.value]) \
+            .eq(df.node_id.value, node_dump[df.node_id.value]) \
             .execute()
         
         return db_response
     
     def get_node_info(self, payload : NodeInfoDelete):
-        node_dump = self._wrap_node_op(payload)
+        node_dump = payload.model_dump()
         db_response = supabase.table("nodes").select("*")\
-            .eq(df.user_id, node_dump[df.user_id]).eq(df.node_id, node_dump[df.node_id]).execute()
+            .eq(df.user_id.value, node_dump[df.user_id.value]).eq(df.node_id.value, node_dump[df.node_id.value]).execute()
         
         return db_response
 

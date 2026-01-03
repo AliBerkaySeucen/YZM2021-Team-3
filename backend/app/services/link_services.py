@@ -14,8 +14,8 @@ class LinkService:
     
     def delete_link(self, payload : NodeLinkDelete):
         link_dump = payload.model_dump()
-        db_response = supabase.table("nodelinks").delete().eq(df.user_id, link_dump[df.user_id]).\
-            eq(df.link_id, link_dump[df.link_id]).execute()
+        db_response = supabase.table("nodelinks").delete().eq(df.user_id.value, link_dump[df.user_id.value]).\
+            eq(df.link_id.value, link_dump[df.link_id.value]).execute()
         return db_response
     
 

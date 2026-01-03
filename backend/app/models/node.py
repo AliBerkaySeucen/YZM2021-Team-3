@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 import datetime
+from typing import Optional
 from enum import Enum
 
 class NodeDataFields(Enum):
@@ -14,7 +15,7 @@ class NodeOp(BaseModel):
 
 class NodeCreate(NodeOp):
     user_id : int
-    image_id : str
+    image_id : Optional[str] = None
     description : str
 
 class NodeUpdate(NodeOp):
@@ -23,7 +24,7 @@ class NodeUpdate(NodeOp):
     image_id : str
     description : str
 
-class NodeInfoDelete(NodeOp): # THIS MIGHT CREATE PROBLEM, IGNORING FOR NOW
+class NodeInfoDelete(BaseModel):
     user_id : int
     node_id : str
 
