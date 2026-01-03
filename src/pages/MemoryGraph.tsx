@@ -30,40 +30,63 @@ const MemoryGraph: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = useState<{ nodes: string[], edges: string[] } | null>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
 
-  // Convert memories to nodes
+  // Convert memories to nodes with stable positions
   useEffect(() => {
-    const newNodes: Node[] = memories.map(memory => ({
-      id: memory.id,
-      type: 'default',
-      position: memory.position || { x: Math.random() * 400, y: Math.random() * 300 },
-      data: {
-        label: (
-          <div className="node-content">
-            <img 
-              src={memory.image} 
-              alt={memory.title} 
-              className="node-image" 
-              loading="lazy"
-              decoding="async"
-              style={{ contentVisibility: 'auto' }}
-            />
-          </div>
-        ),
-      },
-      selectable: true,
-      draggable: true,
-      connectable: false,
-      style: {
-        background: '#3B82F6',
-        border: '3px solid #60A5FA',
-        borderRadius: '12px',
-        padding: 0,
-        width: 120,
-        height: 90,
-      },
-    }));
+    const newNodes: Node[] = memories
+      .filter(memory => memory && memory.id && memory.image) // Filter out invalid memories
+      .map((memory, index) => {
+        // Use existing position if available, otherwise calculate stable position
+        let position = memory.position;
+        
+        // If no position exists, calculate a stable grid-based position
+        if (!position || (position.x === 0 && position.y === 0)) {
+          const cols = 5; // Number of columns in grid
+          const spacing = 200; // Space between nodes
+          const row = Math.floor(index / cols);
+          const col = index % cols;
+          
+          position = {
+            x: col * spacing + 100,
+            y: row * spacing + 100
+          };
+          
+          // Save this position to backend so it persists
+          updateMemoryPosition(memory.id, position);
+        }
+        
+        return {
+          id: memory.id,
+          type: 'default',
+          position: position,
+          data: {
+            label: (
+              <div className="node-content">
+                <img 
+                  src={memory.image} 
+                  alt={memory.title} 
+                  className="node-image" 
+                  loading="lazy"
+                  decoding="async"
+                  style={{ contentVisibility: 'auto' }}
+                />
+              </div>
+            ),
+          },
+          selectable: true,
+          draggable: true,
+          connectable: false,
+          style: {
+            background: '#3B82F6',
+            border: '3px solid #60A5FA',
+            borderRadius: '12px',
+            padding: 0,
+            width: 120,
+            height: 90,
+          },
+        };
+      });
     setNodes(newNodes);
-  }, [memories, setNodes]);
+  }, [memories, setNodes, updateMemoryPosition]);
 
   // Convert connections to edges
   useEffect(() => {

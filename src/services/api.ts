@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 class ApiService {
   private api: AxiosInstance;
@@ -32,9 +32,13 @@ class ApiService {
       (response) => response,
       (error: AxiosError) => {
         if (error.response?.status === 401) {
-          // Token expired or invalid
-          this.clearAuth();
-          window.location.href = '/login';
+          // Token expired or invalid - only logout if not already on login page
+          const isLoginPage = window.location.pathname === '/login';
+          if (!isLoginPage) {
+            console.error('[AUTH] Token expired or invalid - logging out');
+            this.clearAuth();
+            window.location.href = '/login';
+          }
         }
         return Promise.reject(error);
       }
@@ -57,25 +61,38 @@ class ApiService {
 
   // Auth endpoints
   async register(name: string, email: string, password: string) {
-    const response = await this.api.post('/auth/register', { name, email, password });
-    this.setToken(response.data.access_token);
-    const userData = {
-      ...response.data.user,
-      createdAt: response.data.user.created_at || response.data.user.createdAt
-    };
-    localStorage.setItem('memolink_current_user', JSON.stringify(userData));
-    return response.data;
+    // Backend: POST /users/create_user with JSON body
+    const response = await this.api.post('/users/create_user', { 
+      first_name: name.split(' ')[0] || name,
+      surname: name.split(' ')[1] || '',
+      email, 
+      password 
+    });
+    
+    // Get token by logging in after registration
+    const loginResponse = await this.login(email, password);
+    return loginResponse;
   }
 
   async login(email: string, password: string) {
-    const response = await this.api.post('/auth/login', { email, password });
+    // Backend: POST /users/get_access_token with form-data (OAuth2PasswordRequestForm)
+    const formData = new FormData();
+    formData.append('username', email);
+    formData.append('password', password);
+    
+    const response = await this.api.post('/users/get_access_token', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
     this.setToken(response.data.access_token);
-    const userData = {
-      ...response.data.user,
-      createdAt: response.data.user.created_at || response.data.user.createdAt
-    };
-    localStorage.setItem('memolink_current_user', JSON.stringify(userData));
-    return response.data;
+    
+    // Get user info after login
+    const userInfo = await this.getCurrentUser();
+    localStorage.setItem('memolink_current_user', JSON.stringify(userInfo));
+    
+    return { access_token: response.data.access_token, user: userInfo };
   }
 
   async forgotPassword(email: string) {
@@ -83,8 +100,22 @@ class ApiService {
     return response.data;
   }
 
-  async resetPassword(token: string, new_password: string) {
-    const response = await this.api.post('/auth/reset-password', { token, new_password });
+  async resetPassword(token: string, password: string) {
+    const response = await this.api.post('/auth/reset-password', { 
+      token, 
+      password 
+    });
+    return response.data;
+  }
+
+  async resetPasswordOld(token: string, new_password: string) {
+    // Old endpoint - kept for reference
+    const response = await this.api.put('/users/reset_user_info', null, {
+      params: {
+        new_val: new_password,
+        reset_mode: 'password'
+      }
+    });
     return response.data;
   }
 
@@ -97,11 +128,39 @@ class ApiService {
   }
 
   async getCurrentUser() {
-    const response = await this.api.get('/auth/me');
+    // Backend: POST /users/get_user_info (requires authentication)
+    const response = await this.api.post('/users/get_user_info');
+    const user = response.data;
+    
+    // Transform backend user to frontend format
+    return {
+      id: user.user_id,
+      name: user.first_name && user.surname ? `${user.first_name} ${user.surname}`.trim() : user.first_name || user.surname || 'User',
+      email: user.email,
+      createdAt: user.created_at,
+      is_premium: user.is_premium || false,
+      memory_limit: user.memory_limit || 30
+    };
+  }
+
+  async upgradeToPremium() {
+    // Backend: POST /users/upgrade_to_premium
+    const response = await this.api.post('/users/upgrade_to_premium');
     return response.data;
   }
 
-  // Memory endpoints
+  async updateProfile(field: 'first_name' | 'surname' | 'email' | 'password', value: string) {
+    // Backend: PUT /users/reset_user_info
+    const response = await this.api.put('/users/reset_user_info', null, {
+      params: {
+        new_val: value,
+        reset_mode: field
+      }
+    });
+    return response.data;
+  }
+
+  // Memory endpoints (Backend uses /nodes)
   async createMemory(memoryData: {
     title: string;
     description: string;
@@ -110,18 +169,102 @@ class ApiService {
     date?: string;
     position?: { x: number; y: number };
   }) {
-    const response = await this.api.post('/memories', memoryData);
-    return response.data;
+    console.log('[API] createMemory called with:', {
+      title: memoryData.title,
+      hasImage: !!memoryData.image,
+      imageLength: memoryData.image ? memoryData.image.length : 0,
+      imageStart: memoryData.image ? memoryData.image.substring(0, 50) : 'no image'
+    });
+    
+    // Backend: POST /nodes/create_node with JSON body including all fields
+    const response = await this.api.post('/nodes/create_node', {
+      image_id: memoryData.image,
+      description: memoryData.description,
+      title: memoryData.title || 'Untitled',
+      tags: memoryData.tags || [],
+      position: memoryData.position,
+      date: memoryData.date
+    });
+    
+    console.log('[API] createMemory response:', {
+      node_id: response.data.node_id,
+      image_id: response.data.image_id,
+      hasImageData: !!response.data.image_data,
+      imageDataLength: response.data.image_data ? response.data.image_data.length : 0
+    });
+    
+    console.log('[API] Full response.data:', JSON.stringify(response.data, null, 2));
+    
+    // Transform backend node to frontend Memory format
+    const node = response.data;
+    return {
+      id: node.node_id || node.id,
+      title: node.title || memoryData.title || 'Untitled',
+      description: node.description || '',
+      image: node.image_data || node.image_id || memoryData.image,
+      createdAt: node.created_at || new Date().toISOString(),
+      tags: node.tags || [],
+      date: node.custom_date || memoryData.date,
+      position: node.position_x && node.position_y ? { x: node.position_x, y: node.position_y } : memoryData.position
+    };
   }
 
-  async getMemories() {
-    const response = await this.api.get('/memories');
-    return response.data;
+  async getMemories(limit: number = 40, offset: number = 0) {
+    // Backend: GET /nodes/list_nodes with pagination
+    const response = await this.api.get('/nodes/list_nodes', {
+      params: { limit, offset }
+    });
+    const data = response.data;
+    
+    // Handle new response format with nodes array and total_count
+    const nodes = data.nodes || data;
+    const totalCount = data.total_count || nodes.length;
+    
+    console.log(`[API] Raw nodes from backend (limit=${limit}, offset=${offset}):`, { count: nodes.length, totalCount });
+    
+    // Transform backend nodes to frontend Memory format
+    const memories = (nodes || []).map((node: any) => {
+      const memory = {
+        id: node.node_id || node.id,
+        title: node.title || 'Memory',
+        description: node.description || '',
+        image: node.image_data || node.image_id || '',
+        createdAt: node.created_at || new Date().toISOString(),
+        tags: node.tags || [],
+        date: node.custom_date,
+        position: node.position_x && node.position_y ? { x: node.position_x, y: node.position_y } : undefined
+      };
+      console.log(`[API] Mapped node ${memory.id}:`, {
+        hasImageData: !!node.image_data,
+        hasImageId: !!node.image_id,
+        imageLength: memory.image ? memory.image.length : 0
+      });
+      return memory;
+    });
+    
+    return { memories, totalCount };
   }
 
   async getMemory(id: string) {
-    const response = await this.api.get(`/memories/${id}`);
-    return response.data;
+    // Backend: POST /nodes/get_node_info
+    const response = await this.api.post('/nodes/get_node_info', null, {
+      params: {
+        node_id: id
+      }
+    });
+    
+    // Transform backend node to frontend Memory format
+    const node = response.data;
+    return {
+      id: node.node_id || node.id,
+      title: node.title || 'Memory',
+      description: node.description || '',
+      image: node.image_data || node.image_id || '',
+      createdAt: node.created_at || new Date().toISOString(),
+      tags: node.tags || [],
+      date: node.custom_date,
+      position: node.position_x && node.position_y ? { x: node.position_x, y: node.position_y } : undefined
+    };
   }
 
   async updateMemory(id: string, updates: Partial<{
@@ -132,27 +275,79 @@ class ApiService {
     date: string;
     position: { x: number; y: number };
   }>) {
-    const response = await this.api.put(`/memories/${id}`, updates);
-    return response.data;
+    // Backend: PUT /nodes/update_node with Body
+    const response = await this.api.put('/nodes/update_node', {
+      node_id: id,
+      image_id: updates.image || '',
+      description: updates.description || '',
+      title: updates.title,
+      tags: updates.tags,
+      position: updates.position,
+      date: updates.date
+    });
+    
+    // Transform backend node to frontend Memory format
+    const node = response.data;
+    return {
+      id: node.node_id || node.id,
+      title: node.title || updates.title || 'Memory',
+      description: node.description || '',
+      image: node.image_id || '',
+      createdAt: node.created_at || new Date().toISOString(),
+      tags: node.tags || updates.tags || [],
+      date: node.custom_date || updates.date,
+      position: node.position_x && node.position_y ? { x: node.position_x, y: node.position_y } : updates.position
+    };
   }
 
   async deleteMemory(id: string) {
-    await this.api.delete(`/memories/${id}`);
+    // Backend: DELETE /nodes/delete_node
+    await this.api.delete('/nodes/delete_node', {
+      params: {
+        node_id: id
+      }
+    });
   }
 
-  // Connection endpoints
+  // Connection endpoints (Backend uses /nodelinks)
   async createConnection(source: string, target: string) {
-    const response = await this.api.post('/connections', { source, target });
-    return response.data;
+    // Backend: POST /nodelinks/create_link
+    const response = await this.api.post('/nodelinks/create_link', null, {
+      params: {
+        source_node_id: source,
+        target_node_id: target
+      }
+    });
+    
+    // Transform backend nodelink to frontend Connection format
+    const link = response.data;
+    return {
+      id: link.link_id || link.id,
+      source: link.source_node_id || source,
+      target: link.target_node_id || target
+    };
   }
 
   async getConnections() {
-    const response = await this.api.get('/connections');
-    return response.data;
+    // Backend: GET /nodelinks/list_links
+    const response = await this.api.get('/nodelinks/list_links');
+    const links = response.data;
+    
+    // Transform backend nodelinks to frontend Connection format
+    return (links || []).map((link: any) => ({
+      id: link.link_id || link.id,
+      source: link.source_node_id || link.source,
+      target: link.target_node_id || link.target
+    }));
   }
 
   async deleteConnection(id: string) {
-    await this.api.delete(`/connections/${id}`);
+    // Backend: DELETE /nodelinks/delete_link with link_id
+    await this.api.delete('/nodelinks/delete_link', {
+      params: {
+        link_id: parseInt(id)
+      }
+    });
   }
 
   // Health check
@@ -162,4 +357,5 @@ class ApiService {
   }
 }
 
-export default new ApiService();
+const apiService = new ApiService();
+export default apiService;

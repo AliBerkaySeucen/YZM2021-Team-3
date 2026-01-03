@@ -15,6 +15,12 @@ async def create_link(source_node_id : str, target_node_id : str,
     response = link_service.create_link(payload=payload)
     return response
 
+@router.get("/list_links")
+async def list_links(verified_id: int = Depends(security_service.get_current_user)):
+    """Lists all links for the authenticated user"""
+    response = link_service.list_links(user_id=verified_id)
+    return response
+
 @router.delete("/delete_link")
 async def delete_link(link_id : int,
                     verified_id : int = Depends(security_service.get_current_user)):
