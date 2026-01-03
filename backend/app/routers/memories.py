@@ -37,3 +37,11 @@ async def get_memo_info(memo_id : int,
     payload = MemoOp(user_id=verified_id, memo_id=memo_id)
     response = memory_service.get_memo_info(payload=payload)
     return response
+
+@router.post("/add_node")
+async def add_node(memo_id : int, node_id : int,
+                verified_id : int = Depends(security_service.get_current_user)):
+    """Add the specified node (by node_id) to memory"""
+    payload = MemoOp(user_id=verified_id, memo_id=memo_id)
+    response = memory_service.add_node(payload=payload, node_id=node_id)
+    return response

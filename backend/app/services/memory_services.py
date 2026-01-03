@@ -1,4 +1,5 @@
 from models.memory import MemoOp, MemoDataFields as df, MemoPublic
+from models.node import NodeDataFields as n_df
 from db.db import supabase
 from typing import Any, Annotated, Literal
 from enum import Enum
@@ -39,10 +40,20 @@ class MemoryService:
         return db_response
 
     def get_memo_info(self, payload : MemoOp):
-        memo_dump = payload.model_dump()
+        memo_dump = self._wrap_memo_op(payload)
         db_response = supabase.table("memories").select("*")\
             .eq(df.user_id.value, memo_dump[df.user_id.value]).eq(df.memo_id.value, memo_dump[df.memo_id.value]).execute()
 
+        return db_response
+    
+    def add_node(self, payload : MemoOp, node_id : str):
+        memo_dump = self._wrap_memo_op(payload)
+        db_response = supabase.table("nodes")\
+            .update({n_df.memo_id.value : n_df.memo_id.value})\
+            .eq(df.user_id.value, memo_dump[df.user_id.value]) \
+            .eq(n_df.node_id.value, node_id) \
+            .execute()
+        
         return db_response
 
     

@@ -8,6 +8,7 @@ class NodeDataFields(Enum):
     image_id : str = "image_id"
     description : str = "description"
     node_id : str = "node_id"
+    memo_id : str = "memo_id"
 
 class NodeOp(BaseModel):
     user_id : int

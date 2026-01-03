@@ -31,8 +31,7 @@ class UserService:
         try:
             response = supabase.table("users").insert(modified_user).execute()
         except Exception as e:
-            # PRINT THE REAL ERROR so you can debug it
-            print(f"❌ SUPABASE ERROR: {e}")
+            print(f" SUPABASE ERROR: {e}")
             print(f"Payload keys being sent: {modified_user.keys()}")
             
             raise e
@@ -79,6 +78,12 @@ class UserService:
         user_public_cols = UserPublic.model_fields.keys()
         db_response = supabase.table("users").select(user_public_cols)\
             .eq("user_id", user_id).execute()
+        return db_response
+    
+    def set_user_premium(self, user_id : int):
+        db_response = supabase.table("users")\
+            .select(df.premium.value).eq(df.user_id.value, user_id).execute()
+        
         return db_response
         
         
