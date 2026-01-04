@@ -36,7 +36,7 @@ async def get_user_info(verified_id : int = Depends(security_service.get_current
     return response
 
 @router.put("/set_user_premium")
-async def get_user_info(verified_id : int = Depends(security_service.get_current_user)):
+async def set_user_premium(verified_id : int = Depends(security_service.get_current_user)):
     """Call this endpoint if user subscribed to premium subscription"""
     response = user_service.set_user_premium(user_id=verified_id)
     return response
