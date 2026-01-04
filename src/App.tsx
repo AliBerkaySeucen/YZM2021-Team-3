@@ -15,6 +15,8 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import './utils/sampleData'; // Import for window.loadSampleData()
 import './App.css';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -54,6 +56,18 @@ function App() {
     <ErrorBoundary>
       <MemoryProvider>
         <Router>
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
+          />
           <Routes>
           {/* Home Page - redirects to dashboard if logged in */}
           <Route path="/" element={<HomeRoute />} />

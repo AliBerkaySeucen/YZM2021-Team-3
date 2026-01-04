@@ -179,6 +179,8 @@ body.dark-mode .tag-filter-btn {
   gap: 20px;
   max-width: 950px;
   margin: 0 auto;
+  padding-right: 15px;
+  padding-left: 5px;
 }
 
 .memory-card {
@@ -186,7 +188,7 @@ body.dark-mode .tag-filter-btn {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  transition: all 0.3s ease;
   cursor: pointer;
 }
 
@@ -198,10 +200,12 @@ body.dark-mode .memory-card {
 .memory-card:hover {
   transform: translateY(-8px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
 }
 
 body.dark-mode .memory-card:hover {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  border-radius: 12px;
 }
 
 .memory-image {
@@ -345,7 +349,7 @@ body.dark-mode .pagination-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   font-size: 14px;
   font-weight: 600;
   color: #334155;
@@ -354,6 +358,59 @@ body.dark-mode .pagination-btn {
 
 body.dark-mode .pagination-info {
   color: #E2E8F0;
+}
+
+.page-numbers {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page-number {
+  min-width: 36px;
+  height: 36px;
+  padding: 8px;
+  background: white;
+  border: 2px solid #E5E7EB;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.dark-mode .page-number {
+  background: #1E293B;
+  border-color: #334155;
+  color: #E2E8F0;
+}
+
+.page-number:hover {
+  background: #3B82F6;
+  border-color: #3B82F6;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.page-number.active {
+  background: #3B82F6;
+  border-color: #3B82F6;
+  color: white;
+  font-weight: 700;
+}
+
+.page-ellipsis {
+  padding: 0 4px;
+  color: #94A3B8;
+  font-weight: 600;
+}
+
+body.dark-mode .page-ellipsis {
+  color: #64748B;
 }
 
 .current-page {
@@ -645,6 +702,9 @@ body.dark-mode .popup-title {
   line-height: 1.6;
   margin: 0 0 15px 0;
   white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
   transition: color 0.3s ease;
 }
 

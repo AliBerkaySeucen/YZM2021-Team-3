@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Memory, Connection, AppState } from '../types';
 import apiService from '../services/api';
+import { toast } from 'react-toastify';
 
 interface MemoryContextType {
   memories: Memory[];
   connections: Connection[];
   darkMode: boolean;
   loading: boolean;
+  hasMore: boolean;
   addMemory: (memory: Omit<Memory, 'id' | 'createdAt'>) => Promise<void>;
   updateMemory: (id: string, updates: Partial<Memory>) => Promise<void>;
   deleteMemory: (id: string) => Promise<void>;
@@ -15,6 +17,7 @@ interface MemoryContextType {
   deleteConnection: (id: string) => Promise<void>;
   toggleDarkMode: () => void;
   refreshData: () => Promise<void>;
+  loadMoreMemories: () => Promise<void>;
   clearAllData: () => void;
 }
 
@@ -35,77 +38,61 @@ const getCacheKey = () => {
   return STORAGE_KEY;
 };
 
-export const MemoryProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Initialize state from cache immediately for instant display
-  const [memories, setMemories] = useState<Memory[]>(() => {
-    const cacheKey = getCacheKey();
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      try {
-        const data: AppState = JSON.parse(cached);
-        return data.memories || [];
-      } catch {
-        return [];
-      }
+// Helper function to load cached data and reduce duplication
+const loadFromCache = <T,>(key: keyof AppState, defaultValue: T): T => {
+  const cacheKey = getCacheKey();
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) {
+    try {
+      const data: AppState = JSON.parse(cached);
+      return (data[key] as T) || defaultValue;
+    } catch {
+      return defaultValue;
     }
-    return [];
-  });
-  
-  const [connections, setConnections] = useState<Connection[]>(() => {
-    const cacheKey = getCacheKey();
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      try {
-        const data: AppState = JSON.parse(cached);
-        return data.connections || [];
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  });
-  
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
-    const cacheKey = getCacheKey();
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      try {
-        const data: AppState = JSON.parse(cached);
-        return data.darkMode || false;
-      } catch {
-        return false;
-      }
-    }
-    return false;
-  });
-  const [loading, setLoading] = useState<boolean>(false);
+  }
+  return defaultValue;
+};
 
-  // Load data from backend or fallback to localStorage
-  const refreshData = async () => {
+
+export const MemoryProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // Initialize state from cache for instant display on page switches
+  const [memories, setMemories] = useState<Memory[]>(() => loadFromCache('memories', []));
+  const [connections, setConnections] = useState<Connection[]>(() => loadFromCache('connections', []));
+  const [darkMode, setDarkMode] = useState<boolean>(() => loadFromCache('darkMode', false));
+  const [loading, setLoading] = useState<boolean>(false);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+  const [dataLoaded, setDataLoaded] = useState<boolean>(false);
+
+  // Load data from backend or use cache if already loaded
+  const refreshData = async (forceRefresh: boolean = false) => {
     const token = localStorage.getItem('memolink_token');
     
     if (token) {
-      // Data already loaded from cache in initial state, just fetch updates in background
+      // Eğer daha önce yüklendiyse ve force refresh değilse, cache kullan
+      if (dataLoaded && !forceRefresh && memories.length > 0) {
+        return;
+      }
+      
       try {
-        const cacheKey = getCacheKey();
-        const cached = localStorage.getItem(cacheKey);
+        setLoading(true);
         
-        // Only show loading if we don't have cached data
-        if (!cached) {
-          setLoading(true);
-        }
-        
-        // Fetch fresh data in background (silent update)
-        const [memoriesData, connectionsData] = await Promise.all([
-          apiService.getMemories(),
+        // İlk yüklemede son 40 memory'yi getir
+        const [memoriesResponse, connectionsData] = await Promise.all([
+          apiService.getMemories(40, 0),
           apiService.getConnections()
         ]);
+        
+        const memoriesData = memoriesResponse.memories || [];
+        const totalCount = memoriesResponse.totalCount || 0;
         
         // Update state with fresh data from server
         setMemories(memoriesData);
         setConnections(connectionsData);
+        setHasMore(memoriesData.length < totalCount);
+        setDataLoaded(true);
         
         // Cache the fresh data with user-specific key
+        const cacheKey = getCacheKey();
         const dataToSave: AppState = {
           memories: memoriesData,
           connections: connectionsData,
@@ -114,30 +101,46 @@ export const MemoryProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         localStorage.setItem(cacheKey, JSON.stringify(dataToSave));
       } catch (error) {
         console.error('Error loading data from API:', error);
-        // Keep showing cached data - no problem
       } finally {
         setLoading(false);
       }
-    } else {
-      // Load from localStorage (offline mode)
-      loadFromLocalStorage();
     }
   };
 
-  const loadFromLocalStorage = () => {
-    const cacheKey = getCacheKey();
-    const stored = localStorage.getItem(cacheKey);
-    if (stored) {
-      const data: AppState = JSON.parse(stored);
-      setMemories(data.memories || []);
-      setConnections(data.connections || []);
-      setDarkMode(data.darkMode || false);
+  // Load more memories for infinite scroll
+  const loadMoreMemories = async () => {
+    if (!hasMore || loading) return;
+    
+    const token = localStorage.getItem('memolink_token');
+    if (!token) return;
+    
+    try {
+      setLoading(true);
+      const offset = memories.length;
+      const response = await apiService.getMemories(40, offset);
+      const moreMemories = response.memories || [];
+      const totalCount = response.totalCount || 0;
+      
+      if (moreMemories.length > 0) {
+        setMemories(prev => [...prev, ...moreMemories]);
+        const newTotal = memories.length + moreMemories.length;
+        setHasMore(newTotal < totalCount);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error('Error loading more memories:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Initial data load
+  // Initial data load - only if not already loaded from cache
   useEffect(() => {
-    refreshData();
+    const token = localStorage.getItem('memolink_token');
+    if (token && !dataLoaded) {
+      refreshData();
+    }
     // eslint-disable-next-line
   }, []);
 
@@ -185,12 +188,20 @@ export const MemoryProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           date: memory.date,
           position: memory.position
         });
+        
+        if (!newMemory || !newMemory.id) {
+          console.error('[CONTEXT] Invalid memory returned from API');
+          throw new Error('Invalid memory object returned from server');
+        }
+        
         // Replace temp memory with real one from server
         setMemories(prev => prev.map(m => m.id === tempId ? newMemory : m));
+        toast.success('Memory added successfully!');
       } catch (error) {
         console.error('Error creating memory:', error);
         // Rollback optimistic update on error
         setMemories(prev => prev.filter(m => m.id !== tempId));
+        toast.error('Failed to add memory. Please try again.');
         throw error;
       }
     } else {
@@ -222,10 +233,12 @@ export const MemoryProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         setMemories(prev =>
           prev.map(m => (m.id === id ? updatedMemory : m))
         );
+        toast.success('Memory updated successfully!');
       } catch (error) {
         console.error('Error updating memory:', error);
         // Rollback on error
         setMemories(previousMemories);
+        toast.error('Failed to update memory. Please try again.');
         throw error;
       }
     } else {
@@ -249,11 +262,13 @@ export const MemoryProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       // API call in background
       try {
         await apiService.deleteMemory(id);
+        toast.success('Memory deleted successfully!');
       } catch (error) {
         console.error('Error deleting memory:', error);
         // Rollback on error
         setMemories(previousMemories);
         setConnections(previousConnections);
+        toast.error('Failed to delete memory. Please try again.');
         throw error;
       }
     } else {
@@ -314,10 +329,12 @@ export const MemoryProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         const newConnection = await apiService.createConnection(source, target);
         // Replace temp connection with real one
         setConnections(prev => prev.map(c => c.id === tempId ? newConnection : c));
+        toast.success('Connection created!');
       } catch (error) {
         console.error('Error creating connection:', error);
         // Rollback optimistic update on error
         setConnections(prev => prev.filter(c => c.id !== tempId));
+        toast.error('Failed to create connection.');
         throw error;
       }
     } else {
@@ -351,10 +368,12 @@ export const MemoryProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       // API call in background
       try {
         await apiService.deleteConnection(id);
+        toast.success('Connection deleted!');
       } catch (error) {
         console.error('Error deleting connection:', error);
         // Rollback on error
         setConnections(previousConnections);
+        toast.error('Failed to delete connection.');
         throw error;
       }
     } else {
@@ -370,6 +389,8 @@ export const MemoryProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const clearAllData = () => {
     setMemories([]);
     setConnections([]);
+    setDataLoaded(false);
+    setHasMore(true);
     // Remove user-specific cache on logout
     const cacheKey = getCacheKey();
     localStorage.removeItem(cacheKey);
@@ -384,6 +405,7 @@ export const MemoryProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         connections,
         darkMode,
         loading,
+        hasMore,
         addMemory,
         updateMemory,
         deleteMemory,
@@ -392,6 +414,7 @@ export const MemoryProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         deleteConnection,
         toggleDarkMode,
         refreshData,
+        loadMoreMemories,
         clearAllData,
       }}
     >
