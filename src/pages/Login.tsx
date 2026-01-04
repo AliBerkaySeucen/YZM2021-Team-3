@@ -39,19 +39,20 @@ const Login: React.FC = () => {
       <header className="auth-header-bar">
         <h1 className="auth-logo" onClick={() => navigate('/')}>MemoLink</h1>
         <div className="auth-nav">
-          <span>Don't have an account?</span>
+          <span>Hesabın yok mu?</span>
           <button className="btn-nav-secondary" onClick={() => navigate('/signup')}>
-            Sign up →
+            Kayıt Ol →
           </button>
         </div>
       </header>
 
       <div className="auth-main">
         <div className="auth-content">
-          <h2 className="auth-title">Sign in to MemoLink</h2>
-          <p className="auth-subtitle">Welcome back! Please enter your details.</p>
+          <h2 className="auth-title">MemoLink'e Giriş Yap</h2>
+          <p className="auth-subtitle">Hoş geldin! Lütfen bilgilerini gir.</p>
 
           <form className="auth-form" onSubmit={handleSubmit}>
+
             {error && <div className="auth-error">{error}</div>}
 
             <div className="form-group">
@@ -59,18 +60,18 @@ const Login: React.FC = () => {
               <input
                 type="email"
                 className="form-input"
-                placeholder="Enter your email"
+                placeholder="Email adresini gir"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
 
             <div className="form-group">
-              <label className="form-label">Password</label>
+              <label className="form-label">Şifre</label>
               <input
                 type="password"
                 className="form-input"
-                placeholder="Enter your password"
+                placeholder="Şifreni gir"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -78,12 +79,12 @@ const Login: React.FC = () => {
 
             <div className="form-footer">
               <span className="auth-link" onClick={() => navigate('/forgot-password')}>
-                Forgot password?
+                Şifreni mi unuttun?
               </span>
             </div>
 
             <button type="submit" className="auth-button" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
             </button>
           </form>
         </div>

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useMemory } from '../context/MemoryContext';
 import './Album.css';
 
 const Album: React.FC = () => {
-  const { memories, connections, updateMemory, deleteMemory } = useMemory();
+  const { memories, connections, updateMemory, deleteMemory, loadMoreMemories, hasMore, loading } = useMemory();
   const [selectedMemory, setSelectedMemory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string>('');
@@ -17,6 +17,28 @@ const Album: React.FC = () => {
   const [sortOption, setSortOption] = useState<string>('date-newest');
   const [currentPage, setCurrentPage] = useState(1);
   const memoriesPerPage = 12;
+  
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Infinite scroll handler
+  useEffect(() => {
+    const handleScroll = () => {
+      const container = scrollContainerRef.current;
+      if (!container || loading || !hasMore) return;
+      
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      // Load more when user scrolls to 80% of the content
+      if (scrollTop + clientHeight >= scrollHeight * 0.8) {
+        loadMoreMemories();
+      }
+    };
+
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [loading, hasMore, loadMoreMemories]);
 
   const openMemory = (id: string) => {
     const memory = memories.find(m => m.id === id);
@@ -227,7 +249,7 @@ const Album: React.FC = () => {
         )}
       </div>
 
-      <div className="album-grid">
+      <div className="album-grid" ref={scrollContainerRef} style={{ maxHeight: '70vh', overflowY: 'auto' }}>
         {currentMemories.length > 0 ? (
           currentMemories.map((memory, index) => (
             <div key={memory.id} className="memory-card" onClick={() => openMemory(memory.id)}>
@@ -242,7 +264,7 @@ const Album: React.FC = () => {
               <div className="memory-info">
                 <h3 className="memory-title">{memory.title}</h3>
                 <p className="memory-description">
-                  {memory.description || 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et d.'}
+                  {memory.description || ''}
                 </p>
                 {memory.tags && memory.tags.length > 0 && (
                   <div className="memory-tags">
@@ -259,11 +281,35 @@ const Album: React.FC = () => {
             <p>{searchQuery || selectedTag ? 'No memories found matching your search.' : 'No memories yet. Start adding some!'}</p>
           </div>
         )}
+        
+        {loading && (
+          <div className="loading-more" style={{ textAlign: 'center', padding: '20px', color: '#888' }}>
+            Loading more memories...
+          </div>
+        )}
+        
+        {!hasMore && memories.length > 0 && (
+          <div className="no-more-data" style={{ textAlign: 'center', padding: '20px', color: '#888' }}>
+            All memories loaded
+          </div>
+        )}
       </div>
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
         <div className="pagination-controls">
+          <button 
+            className="pagination-btn"
+            onClick={() => setCurrentPage(1)}
+            disabled={currentPage === 1}
+            title="First page"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="11 17 6 12 11 7"></polyline>
+              <polyline points="18 17 13 12 18 7"></polyline>
+            </svg>
+          </button>
+          
           <button 
             className="pagination-btn"
             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
@@ -276,7 +322,39 @@ const Album: React.FC = () => {
           </button>
           
           <div className="pagination-info">
-            Page <span className="current-page">{currentPage}</span> of <span className="total-pages">{totalPages}</span>
+            <div className="page-numbers">
+              {currentPage > 3 && (
+                <>
+                  <button className="page-number" onClick={() => setCurrentPage(1)}>1</button>
+                  {currentPage > 4 && <span className="page-ellipsis">...</span>}
+                </>
+              )}
+              
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(page => 
+                  page === currentPage || 
+                  page === currentPage - 1 || 
+                  page === currentPage + 1 ||
+                  page === currentPage - 2 ||
+                  page === currentPage + 2
+                )
+                .map(page => (
+                  <button
+                    key={page}
+                    className={`page-number ${page === currentPage ? 'active' : ''}`}
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </button>
+                ))}
+              
+              {currentPage < totalPages - 2 && (
+                <>
+                  {currentPage < totalPages - 3 && <span className="page-ellipsis">...</span>}
+                  <button className="page-number" onClick={() => setCurrentPage(totalPages)}>{totalPages}</button>
+                </>
+              )}
+            </div>
             <span className="pagination-count">({sortedAndFilteredMemories.length} {sortedAndFilteredMemories.length === 1 ? 'memory' : 'memories'})</span>
           </div>
           
@@ -288,6 +366,18 @@ const Album: React.FC = () => {
             Next
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+          
+          <button 
+            className="pagination-btn"
+            onClick={() => setCurrentPage(totalPages)}
+            disabled={currentPage === totalPages}
+            title="Last page"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="13 17 18 12 13 7"></polyline>
+              <polyline points="6 17 11 12 6 7"></polyline>
             </svg>
           </button>
         </div>
