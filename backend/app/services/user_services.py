@@ -82,6 +82,15 @@ class UserService:
         if db_response.data:
             return db_response.data[0]
         return None
+
+    def get_user_by_email(self, email: str):
+        """Get user by email address"""
+        db_response = supabase.table("users").select("user_id", "email", "first_name", "surname")\
+            .eq("email", email).execute()
+
+        if db_response.data:
+            return db_response.data[0]
+        return None
     
     def set_user_premium(self, user_id : int):
         db_response = supabase.table("users")\

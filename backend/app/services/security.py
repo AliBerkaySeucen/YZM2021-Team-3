@@ -67,5 +67,39 @@ class SecurityService:
             return user_id
         except InvalidTokenError:
             raise creditenitals_exception
-        
+
+    def create_reset_token_jwt(self, user_id: int, expires_delta: timedelta = None) -> str:
+        """Create a JWT token specifically for password reset"""
+        if expires_delta is None:
+            expires_delta = timedelta(hours=1)  # Reset tokens expire in 1 hour
+
+        expire = datetime.now(timezone.utc) + expires_delta
+        to_encode = {
+            "sub": str(user_id),
+            "exp": expire,
+            "type": "password_reset"
+        }
+        encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+        return encoded_jwt
+
+    def verify_reset_token(self, token: str) -> int:
+        """Verify password reset token and return user_id"""
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id: str = payload.get("sub")
+            token_type: str = payload.get("type")
+
+            if user_id is None or token_type != "password_reset":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid reset token"
+                )
+
+            return int(user_id)
+        except InvalidTokenError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired reset token"
+            )
+
 security_service = SecurityService()
