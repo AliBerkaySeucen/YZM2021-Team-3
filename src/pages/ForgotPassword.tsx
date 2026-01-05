@@ -32,13 +32,12 @@ const ForgotPassword: React.FC = () => {
     try {
       const response = await apiService.forgotPassword(email);
       setMessage(response.message);
-      
-      // Note: In production, reset link is sent via email
-      // For development, check server logs or email service
-      
+      toast.info(response.message);
       setEmail('');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to send reset link. Please try again.');
+      const errorMsg = err.response?.data?.detail || err.message || 'Sıfırlama linki gönderilemedi. Lütfen tekrar deneyin.';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }
