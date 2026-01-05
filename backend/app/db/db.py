@@ -16,3 +16,10 @@ if url and key:
     except Exception as e:
         print(f"Warning: Failed to initialize Supabase client: {e}")
         print("The application will start but database operations will fail.")
+
+
+def get_supabase_client() -> Client:
+    """Dependency function to inject Supabase client"""
+    if supabase is None:
+        raise RuntimeError("Supabase client is not initialized")
+    return supabase

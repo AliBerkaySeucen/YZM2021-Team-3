@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import users, nodes, images, links, security
+from routers import users, nodes, images, links
 
 app = FastAPI()
 
@@ -21,7 +21,6 @@ app.include_router(users.router)
 app.include_router(images.router)
 app.include_router(nodes.router)
 app.include_router(links.router)
-app.include_router(security.router)
 
 @app.get("/")
 async def root():
