@@ -31,7 +31,9 @@ class UserService:
         try:
             response = supabase.table("users").insert(modified_user).execute()
         except Exception as e:
-            logger.error(f"Supabase error during user creation: {e}")
+            print(f" SUPABASE ERROR: {e}")
+            print(f"Payload keys being sent: {modified_user.keys()}")
+            
             raise e
         if response.data:
             return response.data[0] 
@@ -45,7 +47,7 @@ class UserService:
             hashed_password = user_data["password_hash"]
             user_id = user_data["user_id"] 
         except Exception as e:
-            logger.error(f"Supabase error during login: {e}")
+            print(f"Supabase Error: {e}")
             raise e
 
         if security_service.verify_password(payload.password, hashed_password):
@@ -73,18 +75,16 @@ class UserService:
         return db_response
     
     def get_user_info(self, user_id : int):
-        # Convert column names to comma-separated string
-        user_public_cols = ", ".join(UserPublic.model_fields.keys())
+        user_public_cols = UserPublic.model_fields.keys()
         db_response = supabase.table("users").select(user_public_cols)\
             .eq("user_id", user_id).execute()
-        return db_response.data[0] if db_response.data else None
+        return db_response
     
-    def upgrade_to_premium(self, user_id: int):
-        """Upgrades user to premium with unlimited memories"""
+    def set_user_premium(self, user_id : int):
         db_response = supabase.table("users")\
-            .update({"is_premium": True, "memory_limit": 999999})\
-            .eq("user_id", user_id).execute()
-        return {"success": True, "message": "Upgraded to premium successfully"}
+            .select(df.premium.value).eq(df.user_id.value, user_id).execute()
+        
+        return db_response
         
         
 

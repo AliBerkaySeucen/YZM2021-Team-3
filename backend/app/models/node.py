@@ -25,7 +25,7 @@ class NodeCreate(NodeOp):
     tags : list[str] = []
     position_x : float | None = None
     position_y : float | None = None
-    custom_date : str | None = None
+    custom_date : datetime.datetime | None = None
 
 class NodeUpdate(NodeOp):
     user_id : int
@@ -36,7 +36,7 @@ class NodeUpdate(NodeOp):
     tags : list[str] | None = None
     position_x : float | None = None
     position_y : float | None = None
-    custom_date : str | None = None
+    custom_date : datetime.datetime | None = None
 
 class NodeInfoDelete(BaseModel):  # Simplified model for node info/delete operations
     user_id : int

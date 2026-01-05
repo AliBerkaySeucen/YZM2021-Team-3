@@ -62,13 +62,13 @@ class ApiService {
   // Auth endpoints
   async register(name: string, email: string, password: string) {
     // Backend: POST /users/create_user with JSON body
-    const response = await this.api.post('/users/create_user', { 
+    const response = await this.api.post('/users/create_user', {
       first_name: name.split(' ')[0] || name,
       surname: name.split(' ')[1] || '',
-      email, 
-      password 
+      email,
+      password
     });
-    
+
     // Get token by logging in after registration
     const loginResponse = await this.login(email, password);
     return loginResponse;
@@ -79,37 +79,36 @@ class ApiService {
     const formData = new FormData();
     formData.append('username', email);
     formData.append('password', password);
-    
+
     const response = await this.api.post('/users/get_access_token', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
-    
+
     this.setToken(response.data.access_token);
-    
+
     // Get user info after login
     const userInfo = await this.getCurrentUser();
     localStorage.setItem('memolink_current_user', JSON.stringify(userInfo));
-    
+
     return { access_token: response.data.access_token, user: userInfo };
   }
 
   async forgotPassword(email: string) {
-    const response = await this.api.post('/auth/forgot-password', { email });
-    return response.data;
+    // Password reset functionality not yet implemented on backend
+    // TODO: Implement password reset with /auth/forgot-password endpoint
+    throw new Error('Password reset functionality is not available yet');
   }
 
   async resetPassword(token: string, password: string) {
-    const response = await this.api.post('/auth/reset-password', { 
-      token, 
-      password 
-    });
-    return response.data;
+    // Password reset functionality not yet implemented on backend
+    // TODO: Implement password reset with /auth/reset-password endpoint
+    throw new Error('Password reset functionality is not available yet');
   }
 
-  async resetPasswordOld(token: string, new_password: string) {
-    // Old endpoint - kept for reference
+  async changePassword(new_password: string) {
+    // Backend: PUT /users/reset_user_info with password reset_mode
     const response = await this.api.put('/users/reset_user_info', null, {
       params: {
         new_val: new_password,
@@ -131,7 +130,7 @@ class ApiService {
     // Backend: POST /users/get_user_info (requires authentication)
     const response = await this.api.post('/users/get_user_info');
     const user = response.data;
-    
+
     // Transform backend user to frontend format
     return {
       id: user.user_id,
@@ -144,8 +143,8 @@ class ApiService {
   }
 
   async upgradeToPremium() {
-    // Backend: POST /users/upgrade_to_premium
-    const response = await this.api.post('/users/upgrade_to_premium');
+    // Backend: PUT /users/set_user_premium
+    const response = await this.api.put('/users/set_user_premium');
     return response.data;
   }
 
@@ -175,7 +174,7 @@ class ApiService {
       imageLength: memoryData.image ? memoryData.image.length : 0,
       imageStart: memoryData.image ? memoryData.image.substring(0, 50) : 'no image'
     });
-    
+
     // Backend: POST /nodes/create_node with JSON body including all fields
     const response = await this.api.post('/nodes/create_node', {
       image_id: memoryData.image,
@@ -185,16 +184,16 @@ class ApiService {
       position: memoryData.position,
       date: memoryData.date
     });
-    
+
     console.log('[API] createMemory response:', {
       node_id: response.data.node_id,
       image_id: response.data.image_id,
       hasImageData: !!response.data.image_data,
       imageDataLength: response.data.image_data ? response.data.image_data.length : 0
     });
-    
+
     console.log('[API] Full response.data:', JSON.stringify(response.data, null, 2));
-    
+
     // Transform backend node to frontend Memory format
     const node = response.data;
     return {
@@ -215,13 +214,13 @@ class ApiService {
       params: { limit, offset }
     });
     const data = response.data;
-    
+
     // Handle new response format with nodes array and total_count
     const nodes = data.nodes || data;
     const totalCount = data.total_count || nodes.length;
-    
+
     console.log(`[API] Raw nodes from backend (limit=${limit}, offset=${offset}):`, { count: nodes.length, totalCount });
-    
+
     // Transform backend nodes to frontend Memory format
     const memories = (nodes || []).map((node: any) => {
       const memory = {
@@ -241,7 +240,7 @@ class ApiService {
       });
       return memory;
     });
-    
+
     return { memories, totalCount };
   }
 
@@ -252,7 +251,7 @@ class ApiService {
         node_id: id
       }
     });
-    
+
     // Transform backend node to frontend Memory format
     const node = response.data;
     return {
@@ -285,7 +284,7 @@ class ApiService {
       position: updates.position,
       date: updates.date
     });
-    
+
     // Transform backend node to frontend Memory format
     const node = response.data;
     return {
@@ -318,7 +317,7 @@ class ApiService {
         target_node_id: target
       }
     });
-    
+
     // Transform backend nodelink to frontend Connection format
     const link = response.data;
     return {
@@ -332,7 +331,7 @@ class ApiService {
     // Backend: GET /nodelinks/list_links
     const response = await this.api.get('/nodelinks/list_links');
     const links = response.data;
-    
+
     // Transform backend nodelinks to frontend Connection format
     return (links || []).map((link: any) => ({
       id: link.link_id || link.id,
@@ -348,6 +347,45 @@ class ApiService {
         link_id: parseInt(id)
       }
     });
+  }
+
+  // Image endpoints
+  async getUploadUrl(filename: string) {
+    // Backend: POST /images/get_upload_url
+    const response = await this.api.post('/images/get_upload_url', null, {
+      params: { file_name: filename }
+    });
+    return response.data;
+  }
+
+  async confirmUpload(filename: string) {
+    // Backend: POST /images/confirm_upload
+    const response = await this.api.post('/images/confirm_upload', null, {
+      params: { file_name: filename }
+    });
+    return response.data;
+  }
+
+  async getImageUrl(filename: string) {
+    // Backend: POST /images/get_url_by_name
+    const response = await this.api.post('/images/get_url_by_name', null, {
+      params: { file_name: filename }
+    });
+    return response.data;
+  }
+
+  async deleteImage(filename: string) {
+    // Backend: DELETE /images/delete_image_file
+    const response = await this.api.delete('/images/delete_image_file', {
+      params: { file_name: filename }
+    });
+    return response.data;
+  }
+
+  async fetchImageFromUrl(url: string) {
+    // Backend: POST /images/fetch_from_url
+    const response = await this.api.post('/images/fetch_from_url', { url });
+    return response.data;
   }
 
   // Health check
