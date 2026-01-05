@@ -98,13 +98,18 @@ class ApiService {
   async forgotPassword(email: string) {
     // Password reset functionality not yet implemented on backend
     // TODO: Implement password reset with /auth/forgot-password endpoint
-    throw new Error('Password reset functionality is not available yet');
+    // Return mock response for now
+    return { 
+      message: 'Password reset functionality is not available yet. Please contact support.' 
+    };
   }
 
   async resetPassword(token: string, password: string) {
     // Password reset functionality not yet implemented on backend
     // TODO: Implement password reset with /auth/reset-password endpoint
-    throw new Error('Password reset functionality is not available yet');
+    return { 
+      message: 'Password reset functionality is not available yet. Please contact support.' 
+    };
   }
 
   async changePassword(new_password: string) {
