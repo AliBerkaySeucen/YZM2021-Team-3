@@ -62,7 +62,7 @@ class ApiService {
   // Auth endpoints
   async register(name: string, email: string, password: string) {
     // Backend: POST /users/create_user with JSON body
-    const response = await this.api.post('/users/create_user', {
+    await this.api.post('/users/create_user', {
       first_name: name.split(' ')[0] || name,
       surname: name.split(' ')[1] || '',
       email,
@@ -95,16 +95,22 @@ class ApiService {
     return { access_token: response.data.access_token, user: userInfo };
   }
 
-  async forgotPassword(email: string) {
+  async forgotPassword(email: string): Promise<{ message: string }> {
     // Password reset functionality not yet implemented on backend
+    // For now, return a placeholder message instead of throwing error
     // TODO: Implement password reset with /auth/forgot-password endpoint
-    throw new Error('Password reset functionality is not available yet');
+    return {
+      message: 'Password reset functionality is currently being implemented. Please contact support or use the account settings to change your password.'
+    };
   }
 
-  async resetPassword(token: string, password: string) {
+  async resetPassword(token: string, password: string): Promise<{ message: string }> {
     // Password reset functionality not yet implemented on backend
+    // For now, return a placeholder message instead of throwing error
     // TODO: Implement password reset with /auth/reset-password endpoint
-    throw new Error('Password reset functionality is not available yet');
+    return {
+      message: 'Password reset functionality is currently being implemented. Please use the forgot password flow or contact support.'
+    };
   }
 
   async changePassword(new_password: string) {
