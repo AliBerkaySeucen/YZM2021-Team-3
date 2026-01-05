@@ -95,7 +95,7 @@ class ApiService {
     return { access_token: response.data.access_token, user: userInfo };
   }
 
-  async forgotPassword(email: string) {
+  async forgotPassword(email: string): Promise<{ message: string }> {
     // Password reset functionality not yet implemented on backend
     // TODO: Implement password reset with /auth/forgot-password endpoint
     // Return a mock response for now
@@ -104,7 +104,7 @@ class ApiService {
     };
   }
 
-  async resetPassword(token: string, password: string) {
+  async resetPassword(token: string, password: string): Promise<{ message: string }> {
     // Password reset functionality not yet implemented on backend
     // TODO: Implement password reset with /auth/reset-password endpoint
     return {
