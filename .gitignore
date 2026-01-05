@@ -2,7 +2,22 @@ fast_api_practice*
 fastapi_practice*
 other_files*
 .env
+
 # Python cache files
 __pycache__/
 **/__pycache__/
 *.pyc
+
+# Node.js / Frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+build/
+dist/
+*.log
+
+# Test files
+test_api_crud.py
