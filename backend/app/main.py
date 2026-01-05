@@ -14,6 +14,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "https://memolink-app.vercel.app",  # Production frontend
         "https://*.vercel.app",
         "https://memolink-rv0e.onrender.com",  # Backend self-reference
         "*"  # Temporary - remove in production for security
