@@ -96,20 +96,19 @@ class ApiService {
   }
 
   async forgotPassword(email: string) {
-    const response = await this.api.post('/auth/forgot-password', { email });
-    return response.data;
+    // Password reset functionality not yet implemented on backend
+    // TODO: Implement password reset with /auth/forgot-password endpoint
+    throw new Error('Password reset functionality is not available yet');
   }
 
   async resetPassword(token: string, password: string) {
-    const response = await this.api.post('/auth/reset-password', { 
-      token, 
-      password 
-    });
-    return response.data;
+    // Password reset functionality not yet implemented on backend
+    // TODO: Implement password reset with /auth/reset-password endpoint
+    throw new Error('Password reset functionality is not available yet');
   }
 
-  async resetPasswordOld(token: string, new_password: string) {
-    // Old endpoint - kept for reference
+  async changePassword(new_password: string) {
+    // Backend: PUT /users/reset_user_info with password reset_mode
     const response = await this.api.put('/users/reset_user_info', null, {
       params: {
         new_val: new_password,
@@ -144,8 +143,8 @@ class ApiService {
   }
 
   async upgradeToPremium() {
-    // Backend: POST /users/upgrade_to_premium
-    const response = await this.api.post('/users/upgrade_to_premium');
+    // Backend: PUT /users/set_user_premium
+    const response = await this.api.put('/users/set_user_premium');
     return response.data;
   }
 
@@ -348,6 +347,45 @@ class ApiService {
         link_id: parseInt(id)
       }
     });
+  }
+
+  // Image endpoints
+  async getUploadUrl(filename: string) {
+    // Backend: POST /images/get_upload_url
+    const response = await this.api.post('/images/get_upload_url', null, {
+      params: { file_name: filename }
+    });
+    return response.data;
+  }
+
+  async confirmUpload(filename: string) {
+    // Backend: POST /images/confirm_upload
+    const response = await this.api.post('/images/confirm_upload', null, {
+      params: { file_name: filename }
+    });
+    return response.data;
+  }
+
+  async getImageUrl(filename: string) {
+    // Backend: POST /images/get_url_by_name
+    const response = await this.api.post('/images/get_url_by_name', null, {
+      params: { file_name: filename }
+    });
+    return response.data;
+  }
+
+  async deleteImage(filename: string) {
+    // Backend: DELETE /images/delete_image_file
+    const response = await this.api.delete('/images/delete_image_file', {
+      params: { file_name: filename }
+    });
+    return response.data;
+  }
+
+  async fetchImageFromUrl(url: string) {
+    // Backend: POST /images/fetch_from_url
+    const response = await this.api.post('/images/fetch_from_url', { url });
+    return response.data;
   }
 
   // Health check
