@@ -107,7 +107,9 @@ class ApiService {
   async resetPassword(token: string, password: string) {
     // Password reset functionality not yet implemented on backend
     // TODO: Implement password reset with /auth/reset-password endpoint
-    throw new Error('Password reset functionality is not available yet');
+    return {
+      message: 'Şifre sıfırlama özelliği henüz aktif değil. Lütfen yöneticinizle iletişime geçin.'
+    };
   }
 
   async changePassword(new_password: string) {
