@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import apiService from '../services/api';
 import './Auth.css';
 
@@ -46,52 +47,50 @@ const ForgotPassword: React.FC = () => {
 
   return (
     <div className="auth-container">
-      <div className="auth-card">
-        <div className="auth-header">
-          <h1 className="auth-logo">MemoLink</h1>
-          <p className="auth-tagline">Your memories, beautifully connected</p>
-        </div>
-
-        <form className="auth-form" onSubmit={handleSubmit}>
-          <h2 className="auth-title">Forgot Password?</h2>
-          <p className="auth-subtitle">Enter your email to receive a reset link</p>
-
-          {error && <div className="auth-error">{error}</div>}
-          {message && <div className="auth-success">{message}</div>}
-
-          <div className="form-group">
-            <label className="form-label">Email Address</label>
-            <input
-              type="email"
-              className="form-input"
-              placeholder="Enter your registered email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading}
-            />
-          </div>
-
-          <button type="submit" className="auth-button" disabled={isLoading}>
-            {isLoading ? (
-              <span className="button-spinner">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" opacity="0.25"></circle>
-                  <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"></path>
-                </svg>
-                Sending...
-              </span>
-            ) : (
-              'Send Reset Link'
-            )}
+      <header className="auth-header-bar">
+        <h1 className="auth-logo" onClick={() => navigate('/')}>MemoLink</h1>
+        <div className="auth-nav">
+          <span>Hesabın yok mu?</span>
+          <button className="btn-nav-secondary" onClick={() => navigate('/signup')}>
+            Kayıt Ol →
           </button>
+        </div>
+      </header>
 
-          <div className="auth-footer">
-            Remember your password?{' '}
-            <span className="auth-link" onClick={() => navigate('/login')}>
-              Back to Login
-            </span>
-          </div>
-        </form>
+      <div className="auth-main">
+        <div className="auth-content">
+          <h2 className="auth-title">Şifreni mi Unuttun?</h2>
+          <p className="auth-subtitle">Email adresini gir, sıfırlama linki gönderelim</p>
+
+          <form className="auth-form" onSubmit={handleSubmit}>
+
+            {error && <div className="auth-error">{error}</div>}
+            {message && <div className="auth-success">{message}</div>}
+
+            <div className="form-group">
+              <label className="form-label">Email Adresi</label>
+              <input
+                type="email"
+                className="form-input"
+                placeholder="Kayıtlı email adresini gir"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+
+            <button type="submit" className="auth-button" disabled={isLoading}>
+              {isLoading ? 'Gönderiliyor...' : 'Sıfırlama Linki Gönder'}
+            </button>
+
+            <div className="auth-footer">
+              <span>Şifreni hatırladın mı? </span>
+              <button type="button" className="auth-link" onClick={() => navigate('/login')}>
+                Giriş Yap
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

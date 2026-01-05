@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useMemory } from '../context/MemoryContext';
 import './MemoryModal.css';
 
@@ -19,9 +19,22 @@ const MemoryModal: React.FC<MemoryModalProps> = ({ isOpen, onClose }) => {
   const [memoryDate, setMemoryDate] = useState('');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingAction, setPendingAction] = useState<'close' | 'cancel' | null>(null);
+  const [showImageOptions, setShowImageOptions] = useState(false);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
+  const [isLoadingImage, setIsLoadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Cleanup camera stream on component unmount or when modal closes
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [stream]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -29,8 +42,59 @@ const MemoryModal: React.FC<MemoryModalProps> = ({ isOpen, onClose }) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setImage(reader.result as string);
+        setShowImageOptions(false);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleLoadFromUrl = async () => {
+    if (!imageUrl.trim()) {
+      alert('Lütfen geçerli bir URL girin');
+      return;
+    }
+
+    setIsLoadingImage(true);
+    try {
+      // Use backend proxy to fetch image (bypasses CORS)
+      const token = localStorage.getItem('memolink_token');
+      if (!token) {
+        alert('Oturum süresi dolmuş. Lütfen tekrar giriş yapın.');
+        setIsLoadingImage(false);
+        return;
+      }
+
+      const response = await fetch('http://localhost:8000/images/fetch_from_url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ url: imageUrl })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.detail || 'Resim yüklenemedi');
+        setIsLoadingImage(false);
+        return;
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.image) {
+        setImage(data.image);
+        setImageUrl('');
+        setShowUrlInput(false);
+        setShowImageOptions(false);
+      } else {
+        alert('Resim yüklenemedi');
+      }
+    } catch (error) {
+      console.error('URL\'den resim yükleme hatası:', error);
+      alert('Resim yüklenirken bir hata oluştu');
+    } finally {
+      setIsLoadingImage(false);
     }
   };
 
@@ -112,6 +176,10 @@ const MemoryModal: React.FC<MemoryModalProps> = ({ isOpen, onClose }) => {
   const handleSubmit = () => {
     if (!title.trim()) {
       alert('Please enter a title');
+      return;
+    }
+    if (!description.trim()) {
+      alert('Please enter a description');
       return;
     }
     if (!image) {
@@ -213,20 +281,57 @@ const MemoryModal: React.FC<MemoryModalProps> = ({ isOpen, onClose }) => {
                   style={{ display: 'none' }}
                 />
                 
-                {!image && (
+                {!image && !showUrlInput && (
                   <div className="upload-options">
-                    <button
-                      type="button"
-                      className="upload-option-btn"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                        <polyline points="21 15 16 10 5 21"></polyline>
-                      </svg>
-                      <span>Dosya Seç</span>
-                    </button>
+                    <div className="image-source-container">
+                      <button
+                        type="button"
+                        className="upload-option-btn main-option"
+                        onClick={() => setShowImageOptions(!showImageOptions)}
+                      >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                          <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                        <span>Diğer Seçenekler</span>
+                      </button>
+                      
+                      {showImageOptions && (
+                        <div className="image-options-popup">
+                          <button
+                            type="button"
+                            className="popup-option-btn"
+                            onClick={() => {
+                              fileInputRef.current?.click();
+                              setShowImageOptions(false);
+                            }}
+                          >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                              <polyline points="17 8 12 3 7 8"></polyline>
+                              <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            <span>Dosya Ekle</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="popup-option-btn"
+                            onClick={() => {
+                              setShowUrlInput(true);
+                              setShowImageOptions(false);
+                            }}
+                          >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                            </svg>
+                            <span>URL'den Yükle</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    
                     <button
                       type="button"
                       className="upload-option-btn camera-btn"
@@ -238,6 +343,47 @@ const MemoryModal: React.FC<MemoryModalProps> = ({ isOpen, onClose }) => {
                       </svg>
                       <span>Fotoğraf Çek</span>
                     </button>
+                  </div>
+                )}
+
+                {!image && showUrlInput && (
+                  <div className="url-input-container">
+                    {isLoadingImage && (
+                      <div className="loading-overlay">
+                        <div className="loading-spinner"></div>
+                        <div className="loading-text">Resim yükleniyor...</div>
+                      </div>
+                    )}
+                    <input
+                      type="text"
+                      className="url-input"
+                      placeholder="Resim URL'sini girin..."
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && !isLoadingImage && handleLoadFromUrl()}
+                      disabled={isLoadingImage}
+                    />
+                    <div className="url-input-actions">
+                      <button
+                        type="button"
+                        className="url-btn cancel"
+                        onClick={() => {
+                          setShowUrlInput(false);
+                          setImageUrl('');
+                        }}
+                        disabled={isLoadingImage}
+                      >
+                        İptal
+                      </button>
+                      <button
+                        type="button"
+                        className="url-btn load"
+                        onClick={handleLoadFromUrl}
+                        disabled={isLoadingImage}
+                      >
+                        {isLoadingImage ? 'Yükleniyor...' : 'Yükle'}
+                      </button>
+                    </div>
                   </div>
                 )}
 

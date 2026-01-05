@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import apiService from '../services/api';
 import './Auth.css';
 
@@ -17,7 +18,7 @@ const ResetPassword: React.FC = () => {
     // Validate token on mount
     if (!token) {
       setTokenValid(false);
-      setError('Invalid or missing reset token');
+      setError('Şifre sıfırlama linki geçersiz veya eksik');
       return;
     }
 
@@ -31,33 +32,33 @@ const ResetPassword: React.FC = () => {
 
     // Validation
     if (!password.trim() || !confirmPassword.trim()) {
-      setError('Please fill in all fields');
+      setError('Lütfen tüm alanları doldurun');
       return;
     }
 
     if (password.length < 8) {
-      setError('Password must be at least 8 characters long');
+      setError('Şifre en az 8 karakter olmalıdır');
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('Şifreler eşleşmiyor');
       return;
     }
 
     if (!token) {
-      setError('Invalid reset token');
+      setError('Geçersiz sıfırlama token');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      await apiService.resetPassword(token, password);
-      alert('Password reset successful! You can now login with your new password.');
-      navigate('/login');
+      const response = await apiService.resetPassword(token, password);
+      toast.success(response.message || 'Şifreniz başarıyla sıfırlandı!');
+      setTimeout(() => navigate('/login'), 1500);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to reset password. Token may be invalid or expired.');
+      setError(err.response?.data?.detail || 'Şifre sıfırlama başarısız oldu. Token geçersiz veya süresi dolmuş olabilir.');
       setTokenValid(false);
     } finally {
       setIsLoading(false);
@@ -67,19 +68,19 @@ const ResetPassword: React.FC = () => {
   if (tokenValid === null) {
     return (
       <div className="auth-container">
-        <div className="auth-card">
-          <div className="auth-header">
-            <h1 className="auth-logo">MemoLink</h1>
-            <p className="auth-tagline">Your memories, beautifully connected</p>
+        <header className="auth-header-bar">
+          <h1 className="auth-logo" onClick={() => navigate('/')}>MemoLink</h1>
+          <div className="auth-nav">
+            <button className="btn-nav-secondary" onClick={() => navigate('/login')}>
+              Giriş Yap →
+            </button>
           </div>
-          <div className="auth-form">
-            <div className="auth-loading">
-              <svg className="loading-spinner" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" opacity="0.25"></circle>
-                <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"></path>
-              </svg>
-              <p>Validating reset token...</p>
-            </div>
+        </header>
+
+        <div className="auth-main">
+          <div className="auth-content">
+            <h2 className="auth-title">Token Doğrulanıyor...</h2>
+            <p className="auth-subtitle">Lütfen bekleyin</p>
           </div>
         </div>
       </div>
@@ -89,29 +90,31 @@ const ResetPassword: React.FC = () => {
   if (tokenValid === false) {
     return (
       <div className="auth-container">
-        <div className="auth-card">
-          <div className="auth-header">
-            <h1 className="auth-logo">MemoLink</h1>
-            <p className="auth-tagline">Your memories, beautifully connected</p>
+        <header className="auth-header-bar">
+          <h1 className="auth-logo" onClick={() => navigate('/')}>MemoLink</h1>
+          <div className="auth-nav">
+            <button className="btn-nav-secondary" onClick={() => navigate('/login')}>
+              Giriş Yap →
+            </button>
           </div>
-          <div className="auth-form">
-            <div className="token-invalid">
-              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="15" y1="9" x2="9" y2="15"></line>
-                <line x1="9" y1="9" x2="15" y2="15"></line>
-              </svg>
-              <h2 className="auth-title">Invalid or Expired Token</h2>
-              <p className="auth-subtitle">{error}</p>
+        </header>
+
+        <div className="auth-main">
+          <div className="auth-content">
+            <h2 className="auth-title">Geçersiz veya Süresi Dolmuş Token</h2>
+            <p className="auth-subtitle">{error}</p>
+
+            <form className="auth-form">
               <button className="auth-button" onClick={() => navigate('/forgot-password')}>
-                Request New Reset Link
+                Yeni Sıfırlama Linki İste
               </button>
+
               <div className="auth-footer">
                 <span className="auth-link" onClick={() => navigate('/login')}>
-                  Back to Login
+                  Giriş Yap
                 </span>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       </div>
@@ -120,91 +123,59 @@ const ResetPassword: React.FC = () => {
 
   return (
     <div className="auth-container">
-      <div className="auth-card">
-        <div className="auth-header">
-          <h1 className="auth-logo">MemoLink</h1>
-          <p className="auth-tagline">Your memories, beautifully connected</p>
-        </div>
-
-        <form className="auth-form" onSubmit={handleSubmit}>
-          <h2 className="auth-title">Reset Password</h2>
-          <p className="auth-subtitle">Enter your new password</p>
-
-          {error && <div className="auth-error">{error}</div>}
-
-          <div className="form-group">
-            <label className="form-label">New Password</label>
-            <input
-              type="password"
-              className="form-input"
-              placeholder="Enter new password (min. 8 characters)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isLoading}
-            />
-            <div className="password-strength">
-              {password.length > 0 && (
-                <div className={`strength-bar ${
-                  password.length < 8 ? 'weak' : 
-                  password.length < 12 ? 'medium' : 'strong'
-                }`}>
-                  <div className="strength-bar-fill"></div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Confirm Password</label>
-            <input
-              type="password"
-              className="form-input"
-              placeholder="Re-enter your new password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              disabled={isLoading}
-            />
-            {confirmPassword.length > 0 && password !== confirmPassword && (
-              <div className="password-mismatch">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="15" y1="9" x2="9" y2="15"></line>
-                  <line x1="9" y1="9" x2="15" y2="15"></line>
-                </svg>
-                Passwords do not match
-              </div>
-            )}
-            {confirmPassword.length > 0 && password === confirmPassword && password.length >= 8 && (
-              <div className="password-match">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                Passwords match
-              </div>
-            )}
-          </div>
-
-          <button type="submit" className="auth-button" disabled={isLoading}>
-            {isLoading ? (
-              <span className="button-spinner">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" opacity="0.25"></circle>
-                  <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"></path>
-                </svg>
-                Resetting...
-              </span>
-            ) : (
-              'Reset Password'
-            )}
+      <header className="auth-header-bar">
+        <h1 className="auth-logo" onClick={() => navigate('/')}>MemoLink</h1>
+        <div className="auth-nav">
+          <span>Zaten hesabın var mı?</span>
+          <button className="btn-nav-secondary" onClick={() => navigate('/login')}>
+            Giriş Yap →
           </button>
+        </div>
+      </header>
 
-          <div className="auth-footer">
-            Remember your password?{' '}
-            <span className="auth-link" onClick={() => navigate('/login')}>
-              Back to Login
-            </span>
-          </div>
-        </form>
+      <div className="auth-main">
+        <div className="auth-content">
+          <h2 className="auth-title">Şifreni Sıfırla</h2>
+          <p className="auth-subtitle">Yeni şifreni belirle</p>
+
+          <form className="auth-form" onSubmit={handleSubmit}>
+            {error && <div className="auth-error">{error}</div>}
+
+            <div className="form-group">
+              <label className="form-label">Yeni Şifre</label>
+              <input
+                type="password"
+                className="form-input"
+                placeholder="Yeni şifreni gir (min. 8 karakter)"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Şifre Tekrar</label>
+              <input
+                type="password"
+                className="form-input"
+                placeholder="Şifreni tekrar gir"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+
+            <button type="submit" className="auth-button" disabled={isLoading}>
+              {isLoading ? 'Şifre sıfırlanıyor...' : 'Şifremi Sıfırla'}
+            </button>
+
+            <div className="auth-footer">
+              <span className="auth-link" onClick={() => navigate('/login')}>
+                Giriş Yap
+              </span>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

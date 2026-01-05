@@ -1,19 +1,32 @@
 from fastapi import FastAPI
-from routers import users, nodes, images, links, memories
+from fastapi.middleware.cors import CORSMiddleware
+from routers import users, nodes, images, links, security
 
-app = FastAPI(
-    title="SWE Project API",
-    description="FastAPI backend with Supabase integration",
-    version="1.0.0"
+app = FastAPI()
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        # Add production URL when deployed
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(users.router)
 app.include_router(images.router)
 app.include_router(nodes.router)
 app.include_router(links.router)
-app.include_router(memories.router)
+app.include_router(security.router)
+
+@app.get("/")
+async def root():
+    return {"message": "MemoLink API is running"}
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for Docker and monitoring"""
-    return {"status": "healthy", "service": "swe-project-backend"}
+    return {"status": "healthy"}

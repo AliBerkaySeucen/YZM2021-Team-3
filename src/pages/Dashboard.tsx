@@ -1,13 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMemory } from '../context/MemoryContext';
 import { useNavigate } from 'react-router-dom';
 import MemoryModal from '../components/MemoryModal';
+import PremiumModal from '../components/PremiumModal';
+import apiService from '../services/api';
+import { toast } from 'react-toastify';
 import './Dashboard.css';
 
 const Dashboard: React.FC = () => {
   const { memories, connections } = useMemory();
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  
+  // Initialize from localStorage to prevent flashing
+  const cachedUser = JSON.parse(localStorage.getItem('memolink_current_user') || '{}');
+  const [isPremium, setIsPremium] = useState(cachedUser.is_premium || false);
+  const [memoryLimit, setMemoryLimit] = useState(cachedUser.memory_limit || 30);
+
+  // Check premium status on mount and update if changed
+  useEffect(() => {
+    const checkPremiumStatus = async () => {
+      try {
+        const user = await apiService.getCurrentUser();
+        setIsPremium(user.is_premium || false);
+        setMemoryLimit(user.memory_limit || 30);
+      } catch (error) {
+        console.error('Failed to check premium status:', error);
+      }
+    };
+    checkPremiumStatus();
+  }, []);
+
+  const handleAddMemoryClick = () => {
+    // Check if user has reached limit
+    if (!isPremium && memories.length >= memoryLimit) {
+      setShowPremiumModal(true);
+    } else {
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleUpgrade = async () => {
+    try {
+      await apiService.upgradeToPremium();
+      setIsPremium(true);
+      toast.success('Welcome to Premium! Enjoy unlimited memories!');
+      setShowPremiumModal(false);
+      
+      // Update cached user data
+      const updatedUser = await apiService.getCurrentUser();
+      localStorage.setItem('memolink_current_user', JSON.stringify(updatedUser));
+      
+      // Refresh page to show updated status
+      window.location.reload();
+    } catch (error) {
+      console.error('Upgrade failed:', error);
+      toast.error('Failed to upgrade. Please try again.');
+    }
+  };
+
+  const isAtLimit = !isPremium && memories.length >= memoryLimit;
 
   // Get recently added memories (last 4)
   const recentMemories = [...memories]
@@ -78,13 +131,18 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Add New Memory Section */}
-        <div className="dashboard-card add-memory-card" onClick={() => setIsModalOpen(true)}>
-          <div className="add-icon">+</div>
-          <div className="add-text">Add New Memory</div>
+        <div className="dashboard-card add-memory-card" onClick={handleAddMemoryClick}>
+          <div className="add-icon">{isAtLimit ? '⭐' : '+'}</div>
+          <div className="add-text">{isAtLimit ? 'Go Premium' : 'Add New Memory'}</div>
         </div>
       </div>
 
       <MemoryModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <PremiumModal
+        isOpen={showPremiumModal}
+        onClose={() => setShowPremiumModal(false)}
+        onUpgrade={handleUpgrade}
+      />
     </div>
   );
 };

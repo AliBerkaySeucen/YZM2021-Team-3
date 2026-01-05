@@ -8,7 +8,6 @@ class UserDataFields(Enum):
     email: str = "email"
     password: str = "password_hash"
     user_id : str = "user_id"
-    premium : str = "premium"
 
 
 class UserCreate(BaseModel):
@@ -29,3 +28,5 @@ class UserPublic(BaseModel):
     surname: str
     email: str
     created_at: datetime.datetime
+    is_premium: bool = False
+    memory_limit: int = 30
