@@ -2,6 +2,10 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
+// Debug: Log the API URL being used
+console.log('[API Service] Initializing with URL:', API_URL);
+console.log('[API Service] Environment:', process.env.NODE_ENV);
+
 class ApiService {
   private api: AxiosInstance;
 
@@ -16,6 +20,7 @@ class ApiService {
     // Request interceptor to add token
     this.api.interceptors.request.use(
       (config) => {
+        console.log('[API] Request:', config.method?.toUpperCase(), config.baseURL + config.url);
         const token = this.getToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
@@ -23,14 +28,24 @@ class ApiService {
         return config;
       },
       (error) => {
+        console.error('[API] Request error:', error);
         return Promise.reject(error);
       }
     );
 
     // Response interceptor for error handling
     this.api.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        console.log('[API] Response:', response.status, response.config.url);
+        return response;
+      },
       (error: AxiosError) => {
+        console.error('[API] Response error:', {
+          status: error.response?.status,
+          url: error.config?.url,
+          message: error.message,
+          data: error.response?.data
+        });
         if (error.response?.status === 401) {
           // Token expired or invalid - only logout if not already on login page
           const isLoginPage = window.location.pathname === '/login';

@@ -13,8 +13,6 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://memolink-app.vercel.app",
         "https://memolink-front-five.vercel.app",
         "https://memolink-rv0e.onrender.com",
     ],
