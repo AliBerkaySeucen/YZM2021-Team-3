@@ -4,7 +4,7 @@ from typing import Any, Literal, Union
 from fastapi import HTTPException
 from datetime import timedelta
 
-from models.user import UserCreate, UserLogin, UserPublic, UserDataFields as df
+from models.user import UserCreate, UserLogin, UserPublic
 from db.db import supabase
 from services.security import security_service
 
@@ -76,15 +76,21 @@ class UserService:
     
     def get_user_info(self, user_id : int):
         user_public_cols = UserPublic.model_fields.keys()
-        db_response = supabase.table("users").select(user_public_cols)\
+        db_response = supabase.table("users").select(",".join(user_public_cols))\
             .eq("user_id", user_id).execute()
-        return db_response
+
+        if db_response.data:
+            return db_response.data[0]
+        return None
     
     def set_user_premium(self, user_id : int):
         db_response = supabase.table("users")\
-            .select(df.premium.value).eq(df.user_id.value, user_id).execute()
-        
-        return db_response
+            .update({"is_premium": True, "memory_limit": 999999})\
+            .eq("user_id", user_id).execute()
+
+        if db_response.data:
+            return db_response.data[0]
+        return None
         
         
 
