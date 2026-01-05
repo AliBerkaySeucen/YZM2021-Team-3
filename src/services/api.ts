@@ -137,8 +137,8 @@ class ApiService {
       name: user.first_name && user.surname ? `${user.first_name} ${user.surname}`.trim() : user.first_name || user.surname || 'User',
       email: user.email,
       createdAt: user.created_at,
-      is_premium: user.is_premium || false,
-      memory_limit: user.memory_limit || 30
+      is_premium: user.premium || false,
+      memory_limit: user.nodes_added || 30
     };
   }
 

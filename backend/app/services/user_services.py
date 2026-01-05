@@ -75,14 +75,14 @@ class UserService:
         return db_response
     
     def get_user_info(self, user_id : int):
-        user_public_cols = UserPublic.model_fields.keys()
-        db_response = supabase.table("users").select(user_public_cols)\
+        user_public_cols = list(UserPublic.model_fields.keys())
+        db_response = supabase.table("users").select(", ".join(user_public_cols))\
             .eq("user_id", user_id).execute()
         return db_response
     
     def set_user_premium(self, user_id : int):
         db_response = supabase.table("users")\
-            .select(df.premium.value).eq(df.user_id.value, user_id).execute()
+            .update({df.premium.value : True}).eq(df.user_id.value, user_id).execute()
         
         return db_response
         
